@@ -177,8 +177,8 @@ impl TsgoClient {
         file: &Path,
         position: u32
     ) -> Result<ResolvedType> {
-        // Note: Exact method name TBD based on tsgo API stabilization
-        // May be "quickinfo" or similar LSP-style method
+        // tsgo API method - pinned to bundled version
+        // If API changes, update this when bumping BUNDLED_TSGO_VERSION
         self.request("getQuickInfoAtPosition", json!({
             "file": file.to_string_lossy(),
             "position": position
@@ -229,7 +229,19 @@ pub struct PropertyDef {
 }
 ```
 
-**Note on tsgo API stability:** The tsgo API is marked "not ready" as of the bundled version. We pin a specific version and will adapt method names as the API stabilizes. The IPC boundary isolates us from internal changes.
+**tsgo Version Pinning Strategy:**
+
+The tsgo API is marked "not ready" — we handle this by:
+
+1. **Pin exact version** — `BUNDLED_TSGO_VERSION` specifies the exact tsgo release
+2. **Integration tests** — CI tests against the pinned version verify API compatibility
+3. **Adapter layer** — `TsgoClient` methods abstract over raw API, allowing internal changes
+4. **Upgrade process** — When bumping tsgo version:
+   - Run integration tests
+   - Update method names/signatures in `TsgoClient` if needed
+   - Document breaking changes in CHANGELOG
+
+This isolates the rest of the codebase from tsgo API churn.
 
 ### Bundled Binary Extraction
 
@@ -346,6 +358,24 @@ impl QueryFinder {
             declared_type,
             params_range: site.params_range,
         })
+    }
+
+    /// Extract string literal value from a variable definition
+    fn extract_string_from_definition(&self, def: &Definition) -> Result<String> {
+        // Definition contains the source file and range of the variable declaration
+        // Read the initializer and extract string literal
+        match &def.initializer {
+            InitializerKind::StringLiteral(s) => Ok(s.clone()),
+            InitializerKind::TemplateLiteral { .. } => {
+                Err(QueryError::UnsupportedTemplateLiteral)
+            }
+            InitializerKind::Other => {
+                Err(QueryError::CannotResolveVariable {
+                    name: def.name.clone(),
+                    reason: "initializer is not a string literal".to_string(),
+                })
+            }
+        }
     }
 }
 ```
@@ -574,6 +604,29 @@ async fn infer_nullability(
 }
 ```
 
+```rust
+/// Resolve which base table column a result column originated from
+/// Returns (table_oid, attribute_number) if resolvable
+fn resolve_column_origin(
+    conn: &Client,
+    stmt: &Statement,
+    col_idx: usize
+) -> Option<(u32, i16)> {
+    // tokio-postgres exposes column table OID and attribute number
+    // via the underlying libpq PQftable / PQftablecol
+    let col = &stmt.columns()[col_idx];
+
+    // table_oid returns 0 if column is computed (expression, aggregate)
+    let table_oid = col.table_oid()?;
+    if table_oid == 0 {
+        return None;
+    }
+
+    let attnum = col.table_column()?;
+    Some((table_oid, attnum))
+}
+```
+
 **Known limitations:**
 - LEFT JOIN makes columns nullable even if source is NOT NULL (not detected in v1)
 - COALESCE results are non-null (not detected in v1)
@@ -608,6 +661,60 @@ impl TypeComparator {
         let expected_ts = self.to_typescript_type(inferred, method);
 
         self.structural_compare(&expected_ts, declared)
+    }
+
+    /// Convert inferred PostgreSQL types to TypeScript type structure
+    fn to_typescript_type(&self, inferred: &QueryType, method: QueryMethod) -> TsType {
+        // Build row type from columns
+        let row_props: Vec<TsProperty> = inferred.columns.iter().map(|col| {
+            TsProperty {
+                name: col.name.clone(),
+                ts_type: self.pg_to_ts_type(&col.pg_type, col.nullable),
+            }
+        }).collect();
+
+        let row_type = TsType::Object { properties: row_props };
+
+        // Wrap based on query method
+        match method {
+            QueryMethod::One => row_type,
+            QueryMethod::OneOrNone => TsType::Union(vec![row_type, TsType::Null]),
+            QueryMethod::Many | QueryMethod::ManyOrNone |
+            QueryMethod::Any | QueryMethod::Query => TsType::Array(Box::new(row_type)),
+            QueryMethod::None => TsType::Null,
+            QueryMethod::Result => TsType::Generic {
+                name: "IResult".to_string(),
+                args: vec![row_type],
+            },
+            QueryMethod::Multi => TsType::Array(Box::new(TsType::Array(Box::new(row_type)))),
+            QueryMethod::NodePgQuery => TsType::Generic {
+                name: "QueryResult".to_string(),
+                args: vec![row_type],
+            },
+        }
+    }
+
+    /// Map PostgreSQL type to TypeScript type string
+    fn pg_to_ts_type(&self, pg_type: &PgType, nullable: bool) -> String {
+        let base = match pg_type {
+            PgType::Int2 | PgType::Int4 | PgType::Int8 |
+            PgType::Float4 | PgType::Float8 | PgType::Numeric => "number",
+            PgType::Text | PgType::Varchar | PgType::Char | PgType::Uuid => "string",
+            PgType::Bool => "boolean",
+            PgType::Date | PgType::Timestamp | PgType::Timestamptz => "Date",
+            PgType::Json | PgType::Jsonb => "unknown",
+            PgType::Bytea => "Buffer",
+            PgType::Array(inner) => {
+                return format!("{}[]", self.pg_to_ts_type(inner, false));
+            }
+            PgType::Other(name) => name.as_str(),
+        };
+
+        if nullable {
+            format!("{} | null", base)
+        } else {
+            base.to_string()
+        }
     }
 
     fn structural_compare(
@@ -1176,7 +1283,11 @@ Acceptable for a development tool. Could compress tsgo and extract on first run 
 
 ### v2
 
-- PGLite offline mode (WASM-based Postgres for offline inference)
+- **pg-embed offline mode** — Embedded PostgreSQL via [pg-embed](https://crates.io/crates/pg-embed) crate for offline type inference without a running database
+  - Downloads real Postgres binaries (~50MB, cached)
+  - Full compatibility with production Postgres
+  - Native Rust, tokio-based, no WASM runtime needed
+  - Loads schema from `schema.sql` snapshot
 - Query completions (table/column names)
 - Refactoring support (rename column across queries)
 - Consider tsgo API stabilization — may allow tighter integration
