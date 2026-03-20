@@ -863,6 +863,100 @@ pub async fn compute_schema_hash(conn: &Client) -> Result<u64> {
 3. If different, clear `query_types` table, update stored hash
 4. CLI `check` also verifies schema hash before using cache
 
+## Schema Introspection
+
+The LSP provides hover information for database objects referenced in SQL queries.
+
+### Table Hover
+
+Hovering over a table name in SQL shows:
+
+```
+┌─────────────────────────────────────────────┐
+│ TABLE users                                 │
+│ ─────────────────────────────────────────── │
+│ id          SERIAL PRIMARY KEY              │
+│ email       VARCHAR(255) NOT NULL UNIQUE    │
+│ created_at  TIMESTAMPTZ DEFAULT now()       │
+│ ─────────────────────────────────────────── │
+│ Indexes: users_pkey, users_email_idx        │
+│ Referenced by: orders.user_id               │
+└─────────────────────────────────────────────┘
+```
+
+### Column Hover
+
+Hovering over a column name shows:
+
+```
+┌─────────────────────────────────────────────┐
+│ users.email                                 │
+│ VARCHAR(255) NOT NULL UNIQUE                │
+│ ─────────────────────────────────────────── │
+│ Index: users_email_idx                      │
+└─────────────────────────────────────────────┘
+```
+
+### Implementation
+
+```rust
+// ts-sqlx-core/src/schema_info.rs
+
+pub struct SchemaInfoProvider {
+    conn: Pool<PostgresConnectionManager>,
+    cache: DashMap<String, TableInfo>,  // table_name → info
+}
+
+impl SchemaInfoProvider {
+    pub async fn get_table_info(&self, table: &str) -> Result<TableInfo> {
+        if let Some(cached) = self.cache.get(table) {
+            return Ok(cached.clone());
+        }
+
+        let info = self.fetch_table_info(table).await?;
+        self.cache.insert(table.to_string(), info.clone());
+        Ok(info)
+    }
+
+    async fn fetch_table_info(&self, table: &str) -> Result<TableInfo> {
+        let conn = self.conn.get().await?;
+
+        // Columns
+        let columns = conn.query(
+            r#"
+            SELECT a.attname, format_type(a.atttypid, a.atttypmod),
+                   a.attnotnull, pg_get_expr(d.adbin, d.adrelid)
+            FROM pg_attribute a
+            LEFT JOIN pg_attrdef d ON a.attrelid = d.adrelid AND a.attnum = d.adnum
+            WHERE a.attrelid = $1::regclass AND a.attnum > 0
+            ORDER BY a.attnum
+            "#,
+            &[&table]
+        ).await?;
+
+        // Indexes
+        let indexes = conn.query(
+            "SELECT indexname FROM pg_indexes WHERE tablename = $1",
+            &[&table]
+        ).await?;
+
+        // Foreign keys referencing this table
+        let fks = conn.query(
+            r#"
+            SELECT conname, conrelid::regclass
+            FROM pg_constraint
+            WHERE confrelid = $1::regclass AND contype = 'f'
+            "#,
+            &[&table]
+        ).await?;
+
+        Ok(TableInfo { columns, indexes, fks })
+    }
+}
+```
+
+The hover handler identifies table/column names from the SQL AST (via libpg_query) and queries the schema info provider.
+
 ## Diagnostics
 
 | Code | Severity | Description |
@@ -1280,6 +1374,7 @@ Acceptable for a development tool. Could compress tsgo and extract on first run 
 
 - Tagged template literals with interpolation
 - `@sql` annotation for variable hints (if needed)
+- Table/column completions in SQL strings
 
 ### v2
 
