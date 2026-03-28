@@ -9,6 +9,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./config.js": {
+      "types": "./dist/config.d.ts",
+      "default": "./dist/config.js"
+    },
     "./adapters/database/*": {
       "types": "./dist/adapters/database/*",
       "default": "./dist/adapters/database/*"
@@ -22,6 +26,7 @@
     "better-sqlite3": "^11.0.0",
     "libpg-query": "^15.2.0",
     "pg": "^8.13.0",
+    "smol-toml": "^1.6.1",
     "ts-morph": "^25.0.0"
   },
   "devDependencies": {
