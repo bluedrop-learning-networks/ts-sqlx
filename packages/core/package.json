@@ -32,6 +32,10 @@
     "./types.js": {
       "types": "./dist/types.d.ts",
       "default": "./dist/types.js"
+    },
+    "./cache.js": {
+      "types": "./dist/cache.d.ts",
+      "default": "./dist/cache.js"
     }
   },
   "scripts": {

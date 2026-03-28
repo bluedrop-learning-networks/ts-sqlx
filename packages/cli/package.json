@@ -1,0 +1,20 @@
+{
+  "name": "@ts-sqlx/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "ts-sqlx": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@ts-sqlx/core": "workspace:*",
+    "cmd-ts": "^0.13.0",
+    "glob": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}
