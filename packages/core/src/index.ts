@@ -1,1 +1,17 @@
-export {};
+export * from './types.js';
+export * from './adapters/database/types.js';
+export * from './adapters/database/oidMap.js';
+export { PGLiteAdapter } from './adapters/database/pgliteAdapter.js';
+export * from './adapters/typescript/types.js';
+export { TsMorphAdapter } from './adapters/typescript/tsMorphAdapter.js';
+export { extractParams } from './paramExtractor.js';
+export { parseSql, parseSqlAsync, ensureModuleLoaded } from './sqlAnalyzer.js';
+export type { ParseResult } from './sqlAnalyzer.js';
+export { QueryDetector } from './queryDetector.js';
+export { DbInferrer } from './dbInferrer.js';
+export { compareTypes, generateTypeAnnotation } from './typeComparator.js';
+export type { DeclaredProperty, CompareResult } from './typeComparator.js';
+export { DiagnosticsEngine } from './diagnostics.js';
+export { TypeCache } from './cache.js';
+export { parseConfig, resolveConfig } from './config.js';
+export type { TsSqlxConfig } from './config.js';
