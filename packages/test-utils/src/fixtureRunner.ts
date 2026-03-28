@@ -1,4 +1,4 @@
-import type { Diagnostic, DiagnosticCode } from '../../core/src/types.js';
+import type { Diagnostic, DiagnosticCode } from '@ts-sqlx/core/types.js';
 
 export interface FixtureExpectation {
   line: number;
