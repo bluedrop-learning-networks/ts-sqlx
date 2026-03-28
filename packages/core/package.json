@@ -20,6 +20,10 @@
     "./adapters/typescript/*": {
       "types": "./dist/adapters/typescript/*",
       "default": "./dist/adapters/typescript/*"
+    },
+    "./queryDetector.js": {
+      "types": "./dist/queryDetector.d.ts",
+      "default": "./dist/queryDetector.js"
     }
   },
   "scripts": {
