@@ -85,3 +85,17 @@ export interface InferredColumn {
   tsType: string;
   nullable: boolean;
 }
+
+/** Per-query analysis result containing diagnostics and data needed for code actions. */
+export interface QueryAnalysis {
+  query: QueryCallInfo;
+  diagnostics: Diagnostic[];
+  /** Inferred columns from the database, if available. Used to generate type annotations. */
+  inferredColumns?: InferredColumn[];
+}
+
+/** Full analysis result for a file. */
+export interface AnalysisResult {
+  diagnostics: Diagnostic[];
+  queries: QueryAnalysis[];
+}

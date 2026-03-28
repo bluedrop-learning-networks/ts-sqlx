@@ -1,4 +1,4 @@
-import type { Diagnostic, DiagnosticCode, DiagnosticSeverity, QueryCallInfo, ParamRef } from './types.js';
+import type { AnalysisResult, Diagnostic, InferredColumn, QueryAnalysis, QueryCallInfo } from './types.js';
 import type { DatabaseAdapter } from './adapters/database/types.js';
 import type { TypeScriptAdapter } from './adapters/typescript/types.js';
 import { QueryDetector } from './queryDetector.js';
@@ -20,18 +20,25 @@ export class DiagnosticsEngine {
   }
 
   async analyze(filePath: string): Promise<Diagnostic[]> {
-    const diagnostics: Diagnostic[] = [];
+    const result = await this.analyzeWithContext(filePath);
+    return result.diagnostics;
+  }
+
+  async analyzeWithContext(filePath: string): Promise<AnalysisResult> {
+    const allDiagnostics: Diagnostic[] = [];
+    const queryAnalyses: QueryAnalysis[] = [];
     const queries = this.queryDetector.detectQueries(filePath);
 
     for (const query of queries) {
-      const diags = await this.analyzeQuery(query, filePath);
-      diagnostics.push(...diags);
+      const { diagnostics, inferredColumns } = await this.analyzeQuery(query, filePath);
+      allDiagnostics.push(...diagnostics);
+      queryAnalyses.push({ query, diagnostics, inferredColumns });
     }
 
-    return diagnostics;
+    return { diagnostics: allDiagnostics, queries: queryAnalyses };
   }
 
-  private async analyzeQuery(query: QueryCallInfo, filePath: string): Promise<Diagnostic[]> {
+  private async analyzeQuery(query: QueryCallInfo, filePath: string): Promise<{ diagnostics: Diagnostic[]; inferredColumns?: InferredColumn[] }> {
     const diagnostics: Diagnostic[] = [];
 
     // TS008: dynamic/unanalyzable SQL
@@ -42,7 +49,7 @@ export class DiagnosticsEngine {
         message: 'Unable to analyze: dynamic SQL',
         range: query.position,
       });
-      return diagnostics;
+      return { diagnostics };
     }
 
     // TS007: no type annotation on query that returns results
@@ -120,7 +127,7 @@ export class DiagnosticsEngine {
         message: `SQL syntax error: ${parseResult.error!.message}`,
         range: query.position,
       });
-      return diagnostics;
+      return { diagnostics };
     }
 
     // TS009: no DB connection
@@ -131,11 +138,14 @@ export class DiagnosticsEngine {
         message: 'No database connection — cannot infer types',
         range: query.position,
       });
-      return diagnostics;
+      return { diagnostics };
     }
+
+    let inferredColumns: InferredColumn[] | undefined;
 
     try {
       const inferred = await this.inferrer!.infer(extracted.normalized);
+      inferredColumns = inferred.columns;
 
       // TS004: Type mismatch between TS param types and inferred SQL param types
       if (indexedParams.length > 0 && query.paramsText && inferred.params.length > 0) {
@@ -212,7 +222,7 @@ export class DiagnosticsEngine {
       }
     }
 
-    return diagnostics;
+    return { diagnostics, inferredColumns };
   }
 }
 
