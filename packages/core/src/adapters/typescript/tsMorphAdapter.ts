@@ -1,8 +1,6 @@
 import {
   Project,
   Node,
-  SyntaxKind,
-  type SourceFile,
 } from 'ts-morph';
 import type {
   TypeScriptAdapter,
@@ -95,12 +93,24 @@ export class TsMorphAdapter implements TypeScriptAdapter {
         text: arg.getText(),
       }));
 
+      const insertTypePosition = expr.getNameNode().getEnd();
+
+      let typeArgumentRange: { start: number; end: number } | undefined;
+      if (typeArgs.length > 0) {
+        const typeArgNodes = node.getTypeArguments();
+        const first = typeArgNodes[0];
+        const last = typeArgNodes[typeArgNodes.length - 1];
+        typeArgumentRange = { start: first.getStart() - 1, end: last.getEnd() + 1 };
+      }
+
       results.push({
         receiverType: receiver.getType().getText(),
         methodName,
         typeArguments: typeArgs,
         arguments: args,
         position: { start: node.getStart(), end: node.getEnd() },
+        insertTypePosition,
+        typeArgumentRange,
       });
     });
 

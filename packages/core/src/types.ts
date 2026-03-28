@@ -36,6 +36,10 @@ export interface QueryCallInfo {
   paramsType: string | undefined;
   paramsText: string | undefined;
   position: TextRange;
+  /** Byte offset right after the method name (where `<` would be inserted). */
+  insertTypePosition: number;
+  /** Range covering the existing `<...>` type arguments, including angle brackets. */
+  typeArgumentRange?: TextRange;
 }
 
 // Parameter extraction

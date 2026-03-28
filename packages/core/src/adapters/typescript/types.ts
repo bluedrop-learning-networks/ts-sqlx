@@ -16,6 +16,10 @@ export interface CallExpressionInfo {
   typeArguments: string[];
   arguments: ArgumentInfo[];
   position: { start: number; end: number };
+  /** Byte offset right after the method name (where `<` would be inserted). */
+  insertTypePosition: number;
+  /** Range covering the existing `<...>` type arguments, including angle brackets. */
+  typeArgumentRange?: { start: number; end: number };
 }
 
 export interface ResolvedImport {

@@ -56,6 +56,8 @@ export class QueryDetector {
       paramsType: call.arguments.length > 1 ? call.arguments[1].type : undefined,
       paramsText: call.arguments.length > 1 ? call.arguments[1].text : undefined,
       position: call.position,
+      insertTypePosition: call.insertTypePosition,
+      typeArgumentRange: call.typeArgumentRange,
     };
   }
 
