@@ -40,7 +40,7 @@ export function createUpdateTypeAnnotationAction(
         [uri]: [
           {
             range: replaceRange,
-            newText: generatedType,
+            newText: `<${generatedType}>`,
           },
         ],
       },
