@@ -41,12 +41,16 @@ connection.onInitialize(async (params: InitializeParams): Promise<InitializeResu
 
     let dbAdapter = null;
     if (config.database.pglite && config.database.schema) {
-      const adapter = await PGLiteAdapter.create();
-      const schemaPath = path.resolve(rootPath, config.database.schema);
-      if (fs.existsSync(schemaPath)) {
-        await adapter.executeSchema(fs.readFileSync(schemaPath, 'utf8'));
+      try {
+        const adapter = await PGLiteAdapter.create();
+        const schemaPath = path.resolve(rootPath, config.database.schema);
+        if (fs.existsSync(schemaPath)) {
+          await adapter.executeSchema(fs.readFileSync(schemaPath, 'utf8'));
+        }
+        dbAdapter = adapter;
+      } catch (e) {
+        connection.console.error(`Failed to initialize PGLite: ${(e as Error).message}`);
       }
-      dbAdapter = adapter;
     }
 
     engine = new DiagnosticsEngine(dbAdapter, tsAdapter);
