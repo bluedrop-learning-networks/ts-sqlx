@@ -9,6 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@ts-sqlx/core': path.resolve(__dirname, 'packages/core/src'),
+      '@ts-sqlx/language-server': path.resolve(__dirname, 'packages/language-server/src'),
       '@ts-sqlx/test-utils': path.resolve(__dirname, 'packages/test-utils/src'),
     },
   },
