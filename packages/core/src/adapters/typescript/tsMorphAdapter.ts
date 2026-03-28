@@ -1,0 +1,161 @@
+import {
+  Project,
+  Node,
+  SyntaxKind,
+  type SourceFile,
+} from 'ts-morph';
+import type {
+  TypeScriptAdapter,
+  CallExpressionInfo,
+  ArgumentInfo,
+  PropertyInfo,
+  ResolvedImport,
+} from './types.js';
+
+export class TsMorphAdapter implements TypeScriptAdapter {
+  private project!: Project;
+
+  loadProject(tsConfigPath: string): void {
+    this.project = new Project({ tsConfigFilePath: tsConfigPath });
+  }
+
+  updateFile(filePath: string, content: string): void {
+    const sourceFile = this.project.getSourceFile(filePath);
+    if (sourceFile) {
+      sourceFile.replaceWithText(content);
+    } else {
+      this.project.createSourceFile(filePath, content, { overwrite: true });
+    }
+  }
+
+  getProjectFiles(): string[] {
+    return this.project.getSourceFiles().map((sf) => sf.getFilePath());
+  }
+
+  getTypeText(filePath: string, position: number): string | undefined {
+    const sourceFile = this.project.getSourceFile(filePath);
+    if (!sourceFile) return undefined;
+    const node = sourceFile.getDescendantAtPos(position);
+    if (!node) return undefined;
+    return node.getType().getText();
+  }
+
+  resolveStringLiteral(filePath: string, position: number): string | undefined {
+    const sourceFile = this.project.getSourceFile(filePath);
+    if (!sourceFile) return undefined;
+
+    const node = sourceFile.getDescendantAtPos(position);
+    if (!node) return undefined;
+
+    if (Node.isStringLiteral(node)) {
+      return node.getLiteralValue();
+    }
+
+    if (Node.isNoSubstitutionTemplateLiteral(node)) {
+      return node.getLiteralValue();
+    }
+
+    if (Node.isIdentifier(node)) {
+      const defs = node.getDefinitionNodes();
+      for (const def of defs) {
+        if (Node.isVariableDeclaration(def)) {
+          const init = def.getInitializer();
+          if (init && Node.isStringLiteral(init)) {
+            return init.getLiteralValue();
+          }
+          if (init && Node.isNoSubstitutionTemplateLiteral(init)) {
+            return init.getLiteralValue();
+          }
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  getCallExpressions(filePath: string): CallExpressionInfo[] {
+    const sourceFile = this.project.getSourceFile(filePath);
+    if (!sourceFile) return [];
+
+    const results: CallExpressionInfo[] = [];
+
+    sourceFile.forEachDescendant((node) => {
+      if (!Node.isCallExpression(node)) return;
+
+      const expr = node.getExpression();
+      if (!Node.isPropertyAccessExpression(expr)) return;
+
+      const receiver = expr.getExpression();
+      const methodName = expr.getName();
+
+      const typeArgs = node.getTypeArguments().map((t) => t.getText());
+      const args: ArgumentInfo[] = node.getArguments().map((arg) => ({
+        position: arg.getStart(),
+        type: arg.getType().getText(),
+        text: arg.getText(),
+      }));
+
+      results.push({
+        receiverType: receiver.getType().getText(),
+        methodName,
+        typeArguments: typeArgs,
+        arguments: args,
+        position: { start: node.getStart(), end: node.getEnd() },
+      });
+    });
+
+    return results;
+  }
+
+  getTypeProperties(typeText: string, filePath: string): PropertyInfo[] {
+    const sourceFile = this.project.getSourceFile(filePath);
+    if (!sourceFile) return [];
+
+    const tempFile = this.project.createSourceFile(
+      '__ts_sqlx_temp__.ts',
+      `import type {} from '${filePath}';\ntype __Resolve__ = ${typeText};`,
+      { overwrite: true }
+    );
+
+    try {
+      const typeAlias = tempFile.getTypeAlias('__Resolve__');
+      if (!typeAlias) return [];
+
+      const type = typeAlias.getType();
+      return type.getProperties().map((prop) => {
+        const decl = prop.getDeclarations()[0];
+        return {
+          name: prop.getName(),
+          type: prop.getTypeAtLocation(tempFile).getText(),
+          optional: decl ? Node.isPropertySignature(decl) && decl.hasQuestionToken() : false,
+        };
+      });
+    } finally {
+      this.project.removeSourceFile(tempFile);
+    }
+  }
+
+  followImport(filePath: string, importName: string): ResolvedImport | undefined {
+    const sourceFile = this.project.getSourceFile(filePath);
+    if (!sourceFile) return undefined;
+
+    for (const importDecl of sourceFile.getImportDeclarations()) {
+      for (const named of importDecl.getNamedImports()) {
+        if (named.getName() === importName) {
+          const symbol = named.getNameNode().getSymbol();
+          if (!symbol) continue;
+          const decls = symbol.getDeclarations();
+          if (decls.length === 0) continue;
+          const decl = decls[0];
+          return {
+            filePath: decl.getSourceFile().getFilePath(),
+            exportName: importName,
+            type: decl.getType().getText(),
+          };
+        }
+      }
+    }
+
+    return undefined;
+  }
+}
