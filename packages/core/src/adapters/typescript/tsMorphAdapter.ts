@@ -111,9 +111,32 @@ export class TsMorphAdapter implements TypeScriptAdapter {
     const sourceFile = this.project.getSourceFile(filePath);
     if (!sourceFile) return [];
 
+    // If typeText is a simple identifier, try to resolve it directly from the source file
+    const isSimpleIdentifier = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(typeText);
+
+    if (isSimpleIdentifier) {
+      // Look up the type alias or interface in the source file
+      const typeAlias = sourceFile.getTypeAlias(typeText);
+      const iface = sourceFile.getInterface(typeText);
+      const target = typeAlias ?? iface;
+      if (target) {
+        const type = target.getType();
+        return type.getProperties().map((prop) => {
+          const decl = prop.getDeclarations()[0];
+          return {
+            name: prop.getName(),
+            type: prop.getTypeAtLocation(sourceFile).getText(),
+            optional: decl ? Node.isPropertySignature(decl) && decl.hasQuestionToken() : false,
+          };
+        });
+      }
+    }
+
+    // For complex type expressions (e.g., inline `{ id: string }`), use a temp file
+    // with a wildcard import so identifiers from the source file are accessible
     const tempFile = this.project.createSourceFile(
       '__ts_sqlx_temp__.ts',
-      `import type {} from '${filePath}';\ntype __Resolve__ = ${typeText};`,
+      `import type * as __Source__ from '${filePath}';\ntype __Resolve__ = ${typeText};`,
       { overwrite: true }
     );
 

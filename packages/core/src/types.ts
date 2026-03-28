@@ -34,6 +34,7 @@ export interface QueryCallInfo {
   sqlText: string | undefined;
   declaredResultType: string | undefined;
   paramsType: string | undefined;
+  paramsText: string | undefined;
   position: TextRange;
 }
 

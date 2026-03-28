@@ -54,6 +54,7 @@ export class QueryDetector {
       sqlText,
       declaredResultType: call.typeArguments.length > 0 ? call.typeArguments[0] : undefined,
       paramsType: call.arguments.length > 1 ? call.arguments[1].type : undefined,
+      paramsText: call.arguments.length > 1 ? call.arguments[1].text : undefined,
       position: call.position,
     };
   }
