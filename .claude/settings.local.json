@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__deepwiki__ask_question",
+      "WebFetch(domain:index.crates.io)",
+      "WebFetch(domain:static.crates.io)",
+      "Bash(cargo build:*)",
+      "Bash(cargo test:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "WebFetch(domain:crates.io)",
+      "WebFetch(domain:docs.rs)",
+      "Bash(cargo check:*)",
+      "Bash(TEST_DATABASE_URL='postgres://su:super-secret-password@localhost:64106/test_db' cargo test:*)",
+      "Bash(TEST_DATABASE_URL='postgres://su:super-secret-password@localhost:64106/test_db' ../../target/debug/ts-sqlx check:*)",
+      "Bash(TEST_DATABASE_URL='postgres://su:super-secret-password@localhost:64106/test_db' RUST_LOG=ts_sqlx_core=debug ../../target/debug/ts-sqlx check type-resolution/complex-types.ts)",
+      "Bash(TEST_DATABASE_URL='postgres://su:super-secret-password@localhost:64106/test_db' ../../target/release/ts-sqlx check:*)"
+    ]
+  }
+}

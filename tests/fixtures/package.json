@@ -1,0 +1,6 @@
+{
+  "name": "ts-sqlx-test-fixtures",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Test fixtures for ts-sqlx integration tests"
+}

@@ -1,0 +1,41 @@
+[database]
+url_env = "TEST_DATABASE_URL"
+
+[paths]
+include = ["**/*.ts"]
+exclude = ["node_modules/**"]
+
+[[methods]]
+module = "pg-promise"
+name = "one"
+method_type = "One"
+
+[[methods]]
+module = "pg-promise"
+name = "oneOrNone"
+method_type = "OneOrNone"
+
+[[methods]]
+module = "pg-promise"
+name = "many"
+method_type = "Many"
+
+[[methods]]
+module = "pg-promise"
+name = "manyOrNone"
+method_type = "ManyOrNone"
+
+[[methods]]
+module = "pg-promise"
+name = "any"
+method_type = "Any"
+
+[[methods]]
+module = "pg-promise"
+name = "none"
+method_type = "None"
+
+[[methods]]
+module = "pg-promise"
+name = "query"
+method_type = "Any"
