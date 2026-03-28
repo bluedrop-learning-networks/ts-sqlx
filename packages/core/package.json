@@ -24,6 +24,10 @@
     "./queryDetector.js": {
       "types": "./dist/queryDetector.d.ts",
       "default": "./dist/queryDetector.js"
+    },
+    "./diagnostics.js": {
+      "types": "./dist/diagnostics.d.ts",
+      "default": "./dist/diagnostics.js"
     }
   },
   "scripts": {
