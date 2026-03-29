@@ -84,10 +84,34 @@ function normalizeType(t: string): string {
     .join(' | ');
 }
 
-export function generateTypeAnnotation(columns: InferredColumn[]): string {
+export interface TypeImport {
+  typeName: string;
+  moduleSpecifier: string;
+}
+
+export interface GeneratedAnnotation {
+  typeText: string;
+  imports: TypeImport[];
+}
+
+export function generateTypeAnnotation(columns: InferredColumn[]): GeneratedAnnotation {
   const props = columns.map((col) => {
     const type = col.nullable ? `${col.tsType} | null` : col.tsType;
     return `${col.name}: ${type}`;
   });
-  return `{ ${props.join('; ')} }`;
+  const typeText = `{ ${props.join('; ')} }`;
+
+  const seen = new Set<string>();
+  const imports: TypeImport[] = [];
+  for (const col of columns) {
+    if (col.importFrom) {
+      const key = `${col.importFrom}:${col.tsType}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        imports.push({ typeName: col.tsType, moduleSpecifier: col.importFrom });
+      }
+    }
+  }
+
+  return { typeText, imports };
 }

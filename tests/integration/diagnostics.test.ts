@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { DiagnosticsEngine } from '@ts-sqlx/core/diagnostics.js';
 import { PGLiteAdapter } from '@ts-sqlx/core/adapters/database/pgliteAdapter.js';
 import { TsMorphAdapter } from '@ts-sqlx/core/adapters/typescript/tsMorphAdapter.js';
+import { parseTypeOverrides } from '@ts-sqlx/core/config.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -59,5 +60,11 @@ describe('DiagnosticsEngine', () => {
     );
     const ts008 = diags.filter(d => d.code === 'TS008');
     expect(ts008.length).toBeGreaterThan(0);
+  });
+
+  it('uses type overrides in diagnostics', async () => {
+    const overrides = parseTypeOverrides({ numeric: 'number' });
+    const overrideEngine = new DiagnosticsEngine(dbAdapter, tsAdapter, overrides);
+    expect(overrideEngine).toBeDefined();
   });
 });

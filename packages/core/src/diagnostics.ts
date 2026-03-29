@@ -1,6 +1,7 @@
 import type { AnalysisResult, Diagnostic, InferredColumn, QueryAnalysis, QueryCallInfo } from './types.js';
 import type { DatabaseAdapter } from './adapters/database/types.js';
 import type { TypeScriptAdapter } from './adapters/typescript/types.js';
+import type { TypeOverride } from './config.js';
 import { QueryDetector } from './queryDetector.js';
 import { extractParams } from './paramExtractor.js';
 import { parseSqlAsync } from './sqlAnalyzer.js';
@@ -15,9 +16,10 @@ export class DiagnosticsEngine {
   constructor(
     private dbAdapter: DatabaseAdapter | null,
     private tsAdapter: TypeScriptAdapter,
+    private typeOverrides?: Map<string, TypeOverride>,
   ) {
     this.queryDetector = new QueryDetector(tsAdapter);
-    this.inferrer = dbAdapter ? new DbInferrer(dbAdapter) : null;
+    this.inferrer = dbAdapter ? new DbInferrer(dbAdapter, typeOverrides) : null;
   }
 
   async analyze(filePath: string): Promise<Diagnostic[]> {

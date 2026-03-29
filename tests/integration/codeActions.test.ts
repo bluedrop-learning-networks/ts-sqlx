@@ -130,7 +130,7 @@ describe('Code action wiring', () => {
 
       for (const qa of ts010Queries) {
         expect(qa.inferredColumns).toBeDefined();
-        const generatedType = generateTypeAnnotation(qa.inferredColumns!);
+        const { typeText: generatedType } = generateTypeAnnotation(qa.inferredColumns!);
         // Must be an inline object type, not a named reference
         expect(generatedType).toMatch(/^\{/);
       }
@@ -143,8 +143,8 @@ describe('Code action wiring', () => {
         { name: 'id', pgType: 'uuid', tsType: 'string', nullable: false },
         { name: 'name', pgType: 'text', tsType: 'string', nullable: true },
       ];
-      const result = generateTypeAnnotation(columns);
-      expect(result).toBe('{ id: string; name: string | null }');
+      const { typeText } = generateTypeAnnotation(columns);
+      expect(typeText).toBe('{ id: string; name: string | null }');
     });
 
     it('handles all non-nullable columns', () => {
@@ -152,8 +152,8 @@ describe('Code action wiring', () => {
         { name: 'id', pgType: 'uuid', tsType: 'string', nullable: false },
         { name: 'email', pgType: 'text', tsType: 'string', nullable: false },
       ];
-      const result = generateTypeAnnotation(columns);
-      expect(result).toBe('{ id: string; email: string }');
+      const { typeText } = generateTypeAnnotation(columns);
+      expect(typeText).toBe('{ id: string; email: string }');
     });
 
     it('handles multiple nullable columns', () => {
@@ -161,8 +161,8 @@ describe('Code action wiring', () => {
         { name: 'name', pgType: 'text', tsType: 'string', nullable: true },
         { name: 'age', pgType: 'int4', tsType: 'number', nullable: true },
       ];
-      const result = generateTypeAnnotation(columns);
-      expect(result).toBe('{ name: string | null; age: number | null }');
+      const { typeText } = generateTypeAnnotation(columns);
+      expect(typeText).toBe('{ name: string | null; age: number | null }');
     });
   });
 
@@ -212,6 +212,57 @@ describe('Code action wiring', () => {
       expect(textEdit.range.end).toEqual(replaceRange.end);
       // Should wrap the type in angle brackets
       expect(textEdit.newText).toBe('<{ id: string; email: string }>');
+    });
+  });
+
+  describe('code actions with imports', () => {
+    it('adds import text edits when imports are provided', () => {
+      const action = createAddTypeAnnotationAction(
+        'file:///test.ts',
+        '{ created: Dayjs }',
+        { line: 5, character: 10 },
+        [{ typeName: 'Dayjs', moduleSpecifier: 'dayjs' }],
+      );
+      const edits = action.edit!.changes!['file:///test.ts'];
+      expect(edits).toHaveLength(2);
+      expect(edits[1].range.start.line).toBe(0);
+      expect(edits[1].newText).toContain("import type { Dayjs } from 'dayjs'");
+    });
+
+    it('adds multiple import statements', () => {
+      const action = createAddTypeAnnotationAction(
+        'file:///test.ts',
+        '{ created: Dayjs; amount: Decimal }',
+        { line: 5, character: 10 },
+        [
+          { typeName: 'Dayjs', moduleSpecifier: 'dayjs' },
+          { typeName: 'Decimal', moduleSpecifier: 'decimal.js' },
+        ],
+      );
+      const edits = action.edit!.changes!['file:///test.ts'];
+      expect(edits).toHaveLength(3);
+    });
+
+    it('creates no import edits when imports array is empty', () => {
+      const action = createAddTypeAnnotationAction(
+        'file:///test.ts',
+        '{ id: number }',
+        { line: 5, character: 10 },
+        [],
+      );
+      const edits = action.edit!.changes!['file:///test.ts'];
+      expect(edits).toHaveLength(1);
+    });
+
+    it('adds imports for update type annotation action', () => {
+      const action = createUpdateTypeAnnotationAction(
+        'file:///test.ts',
+        '{ created: Dayjs }',
+        { start: { line: 5, character: 10 }, end: { line: 5, character: 30 } },
+        [{ typeName: 'Dayjs', moduleSpecifier: 'dayjs' }],
+      );
+      const edits = action.edit!.changes!['file:///test.ts'];
+      expect(edits).toHaveLength(2);
     });
   });
 });

@@ -14,7 +14,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { DiagnosticsEngine } from '@ts-sqlx/core/diagnostics.js';
 import { createDatabaseAdapter } from '@ts-sqlx/core/adapters/database/adapterFactory.js';
 import { TsMorphAdapter } from '@ts-sqlx/core/adapters/typescript/tsMorphAdapter.js';
-import { resolveConfig } from '@ts-sqlx/core/config.js';
+import { resolveConfig, parseTypeOverrides } from '@ts-sqlx/core/config.js';
 import { perf } from '@ts-sqlx/core/perf.js';
 import { generateTypeAnnotation } from '@ts-sqlx/core';
 import type { Diagnostic, DiagnosticSeverity, AnalysisResult } from '@ts-sqlx/core/types.js';
@@ -54,7 +54,8 @@ connection.onInitialize(async (params: InitializeParams): Promise<InitializeResu
       connection.console.error(`Failed to initialize database adapter: ${(e as Error).message}`);
     }
 
-    engine = new DiagnosticsEngine(dbAdapter, tsAdapter);
+    const typeOverrides = parseTypeOverrides(config.types);
+    engine = new DiagnosticsEngine(dbAdapter, tsAdapter, typeOverrides);
   }
 
   return {
@@ -148,7 +149,7 @@ connection.onCodeAction((params) => {
   for (const queryAnalysis of result.queries) {
     if (!queryAnalysis.inferredColumns || queryAnalysis.inferredColumns.length === 0) continue;
 
-    const generatedType = generateTypeAnnotation(queryAnalysis.inferredColumns);
+    const { typeText: generatedType, imports: requiredImports } = generateTypeAnnotation(queryAnalysis.inferredColumns);
     let hasTs007 = false;
     let hasTs010 = false;
 
@@ -166,7 +167,7 @@ connection.onCodeAction((params) => {
       if (diag.code === 'TS007' && !hasTs007) {
         hasTs007 = true;
         const insertPos = offsetToPosition(text, queryAnalysis.query.insertTypePosition);
-        actions.push(createAddTypeAnnotationAction(uri, generatedType, insertPos));
+        actions.push(createAddTypeAnnotationAction(uri, generatedType, insertPos, requiredImports));
       } else if (diag.code === 'TS010' && !hasTs010 && queryAnalysis.query.typeArgumentRange) {
         hasTs010 = true;
         const range = queryAnalysis.query.typeArgumentRange;
@@ -174,7 +175,7 @@ connection.onCodeAction((params) => {
           start: offsetToPosition(text, range.start),
           end: offsetToPosition(text, range.end),
         };
-        actions.push(createUpdateTypeAnnotationAction(uri, generatedType, replaceRange));
+        actions.push(createUpdateTypeAnnotationAction(uri, generatedType, replaceRange, requiredImports));
       }
     }
   }

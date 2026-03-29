@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compareTypes } from '@ts-sqlx/core/typeComparator.js';
+import { compareTypes, generateTypeAnnotation } from '@ts-sqlx/core/typeComparator.js';
 import type { InferredColumn } from '@ts-sqlx/core/types.js';
 
 describe('compareTypes', () => {
@@ -76,5 +76,60 @@ describe('compareTypes', () => {
     const result = compareTypes(inferred, declared);
     expect(result.match).toBe(false);
     expect(result.mismatches.some(m => m.includes('nullable'))).toBe(true);
+  });
+});
+
+describe('generateTypeAnnotation', () => {
+  it('returns type text with no imports for built-in types', () => {
+    const columns: InferredColumn[] = [
+      { name: 'id', pgType: 'int4', tsType: 'number', nullable: false },
+      { name: 'name', pgType: 'text', tsType: 'string', nullable: true },
+    ];
+    const result = generateTypeAnnotation(columns);
+    expect(result.typeText).toBe('{ id: number; name: string | null }');
+    expect(result.imports).toEqual([]);
+  });
+
+  it('collects imports from columns with importFrom', () => {
+    const columns: InferredColumn[] = [
+      { name: 'created', pgType: 'timestamptz', tsType: 'Dayjs', nullable: false, importFrom: 'dayjs' },
+      { name: 'name', pgType: 'text', tsType: 'string', nullable: false },
+    ];
+    const result = generateTypeAnnotation(columns);
+    expect(result.typeText).toBe('{ created: Dayjs; name: string }');
+    expect(result.imports).toEqual([
+      { typeName: 'Dayjs', moduleSpecifier: 'dayjs' },
+    ]);
+  });
+
+  it('deduplicates imports from the same module', () => {
+    const columns: InferredColumn[] = [
+      { name: 'created', pgType: 'timestamptz', tsType: 'Dayjs', nullable: false, importFrom: 'dayjs' },
+      { name: 'updated', pgType: 'timestamptz', tsType: 'Dayjs', nullable: false, importFrom: 'dayjs' },
+    ];
+    const result = generateTypeAnnotation(columns);
+    expect(result.imports).toHaveLength(1);
+  });
+
+  it('keeps distinct types from the same module', () => {
+    const columns: InferredColumn[] = [
+      { name: 'created', pgType: 'timestamptz', tsType: 'Dayjs', nullable: false, importFrom: 'dayjs' },
+      { name: 'config', pgType: 'jsonb', tsType: 'ConfigType', nullable: false, importFrom: 'dayjs' },
+    ];
+    const result = generateTypeAnnotation(columns);
+    expect(result.imports).toHaveLength(2);
+    expect(result.imports).toContainEqual({ typeName: 'Dayjs', moduleSpecifier: 'dayjs' });
+    expect(result.imports).toContainEqual({ typeName: 'ConfigType', moduleSpecifier: 'dayjs' });
+  });
+
+  it('collects imports from multiple modules', () => {
+    const columns: InferredColumn[] = [
+      { name: 'created', pgType: 'timestamptz', tsType: 'Dayjs', nullable: false, importFrom: 'dayjs' },
+      { name: 'amount', pgType: 'numeric', tsType: 'Decimal', nullable: false, importFrom: 'decimal.js' },
+    ];
+    const result = generateTypeAnnotation(columns);
+    expect(result.imports).toHaveLength(2);
+    expect(result.imports).toContainEqual({ typeName: 'Dayjs', moduleSpecifier: 'dayjs' });
+    expect(result.imports).toContainEqual({ typeName: 'Decimal', moduleSpecifier: 'decimal.js' });
   });
 });

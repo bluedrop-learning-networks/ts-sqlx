@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { DbInferrer } from '@ts-sqlx/core/dbInferrer.js';
 import { PGLiteAdapter } from '@ts-sqlx/core/adapters/database/pgliteAdapter.js';
+import { parseTypeOverrides } from '@ts-sqlx/core/config.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -83,5 +84,67 @@ describe('DbInferrer', () => {
     expect(result.columns).toHaveLength(2);
     expect(result.columns[0]).toMatchObject({ name: 'id', tsType: 'string' });
     expect(result.columns[1]).toMatchObject({ name: 'created_at', tsType: 'Date' });
+  });
+
+  describe('DbInferrer with type overrides', () => {
+    let overrideInferrer: DbInferrer;
+
+    beforeAll(() => {
+      const overrides = parseTypeOverrides({
+        numeric: 'number',
+        jsonb: 'Record<string, unknown>',
+        timestamptz: 'dayjs#Dayjs',
+      });
+      overrideInferrer = new DbInferrer(adapter, overrides);
+    });
+
+    it('applies simple type override', async () => {
+      const result = await overrideInferrer.infer(
+        'SELECT numeric_val FROM type_showcase'
+      );
+      expect(result.columns[0].tsType).toBe('number');
+      expect(result.columns[0].importFrom).toBeUndefined();
+    });
+
+    it('applies override with import metadata', async () => {
+      const result = await overrideInferrer.infer(
+        'SELECT timestamptz_col FROM type_showcase'
+      );
+      expect(result.columns[0].tsType).toBe('Dayjs');
+      expect(result.columns[0].importFrom).toBe('dayjs');
+    });
+
+    it('falls back to default when no override exists', async () => {
+      const result = await overrideInferrer.infer(
+        'SELECT regular_int FROM type_showcase'
+      );
+      expect(result.columns[0].tsType).toBe('number');
+      expect(result.columns[0].importFrom).toBeUndefined();
+    });
+
+    it('applies override to jsonb type', async () => {
+      const result = await overrideInferrer.infer(
+        'SELECT jsonb_col FROM type_showcase'
+      );
+      expect(result.columns[0].tsType).toBe('Record<string, unknown>');
+    });
+
+    it('applies override to array column with [] appended', async () => {
+      const arrayOverrides = parseTypeOverrides({
+        int4: 'SafeInt',
+      });
+      const arrayOverrideInferrer = new DbInferrer(adapter, arrayOverrides);
+      const result = await arrayOverrideInferrer.infer(
+        'SELECT int_array FROM type_showcase'
+      );
+      expect(result.columns[0].tsType).toBe('SafeInt[]');
+    });
+
+    it('applies override to parameters', async () => {
+      const result = await overrideInferrer.infer(
+        'SELECT * FROM type_showcase WHERE numeric_val = $1'
+      );
+      expect(result.params[0].tsType).toBe('number');
+    });
   });
 });

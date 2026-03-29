@@ -2,7 +2,7 @@ import { command, positional, flag, string, optional } from 'cmd-ts';
 import { DiagnosticsEngine } from '@ts-sqlx/core/diagnostics.js';
 import { createDatabaseAdapter } from '@ts-sqlx/core/adapters/database/adapterFactory.js';
 import { TsMorphAdapter } from '@ts-sqlx/core/adapters/typescript/tsMorphAdapter.js';
-import { resolveConfig } from '@ts-sqlx/core/config.js';
+import { resolveConfig, parseTypeOverrides } from '@ts-sqlx/core/config.js';
 import { glob } from 'glob';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -39,7 +39,8 @@ export const checkCommand = command({
       process.exit(1);
     }
 
-    const engine = new DiagnosticsEngine(dbAdapter, tsAdapter);
+    const typeOverrides = parseTypeOverrides(config.types);
+    const engine = new DiagnosticsEngine(dbAdapter, tsAdapter, typeOverrides);
 
     const patterns = pattern ? [pattern] : config.paths.include;
     const files = await glob(patterns, {

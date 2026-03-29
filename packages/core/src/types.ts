@@ -81,6 +81,7 @@ export interface InferredParam {
   pgType: string;
   tsType: string;
   nullable: boolean;
+  importFrom?: string;
 }
 
 export interface InferredColumn {
@@ -88,6 +89,7 @@ export interface InferredColumn {
   pgType: string;
   tsType: string;
   nullable: boolean;
+  importFrom?: string;
 }
 
 /** Per-query analysis result containing diagnostics and data needed for code actions. */

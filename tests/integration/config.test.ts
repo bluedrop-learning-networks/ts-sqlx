@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseConfig, resolveConfig } from '@ts-sqlx/core/config.js';
+import { parseConfig, resolveConfig, parseTypeOverrides } from '@ts-sqlx/core/config.js';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -29,6 +29,28 @@ no_connection = "warning"
     expect(config.diagnostics.untyped).toBe('warning');
   });
 
+  it('parses simple type overrides', () => {
+    const config = parseConfig(`
+[types]
+numeric = "number"
+int8 = "bigint"
+jsonb = "Record<string, unknown>"
+`);
+    expect(config.types).toEqual({
+      numeric: 'number',
+      int8: 'bigint',
+      jsonb: 'Record<string, unknown>',
+    });
+  });
+
+  it('defaults to empty types when section is absent', () => {
+    const config = parseConfig(`
+[database]
+url = "$DATABASE_URL"
+`);
+    expect(config.types).toEqual({});
+  });
+
   it('parses pglite config', () => {
     const config = parseConfig(`
 [database]
@@ -51,5 +73,51 @@ describe('resolveConfig', () => {
     const config = resolveConfig('/tmp/nonexistent');
     expect(config).toBeDefined();
     expect(config.paths.include).toEqual(['**/*.ts']);
+  });
+});
+
+describe('parseTypeOverrides', () => {
+  it('parses built-in type (no import)', () => {
+    const overrides = parseTypeOverrides({ numeric: 'number' });
+    expect(overrides.get('numeric')).toEqual({ tsType: 'number' });
+  });
+
+  it('parses external type import with # syntax', () => {
+    const overrides = parseTypeOverrides({ timestamptz: 'dayjs#Dayjs' });
+    expect(overrides.get('timestamptz')).toEqual({
+      tsType: 'Dayjs',
+      importFrom: 'dayjs',
+    });
+  });
+
+  it('parses scoped package import', () => {
+    const overrides = parseTypeOverrides({ money: '@prisma/client/runtime#Decimal' });
+    expect(overrides.get('money')).toEqual({
+      tsType: 'Decimal',
+      importFrom: '@prisma/client/runtime',
+    });
+  });
+
+  it('parses relative path import', () => {
+    const overrides = parseTypeOverrides({ point: './src/types/geo#Point' });
+    expect(overrides.get('point')).toEqual({
+      tsType: 'Point',
+      importFrom: './src/types/geo',
+    });
+  });
+
+  it('returns empty map for empty input', () => {
+    const overrides = parseTypeOverrides({});
+    expect(overrides.size).toBe(0);
+  });
+
+  it('throws on empty type name after #', () => {
+    expect(() => parseTypeOverrides({ numeric: 'decimal.js#' }))
+      .toThrow('Invalid type override');
+  });
+
+  it('throws on empty module before #', () => {
+    expect(() => parseTypeOverrides({ numeric: '#Decimal' }))
+      .toThrow('Invalid type override');
   });
 });

@@ -20,6 +20,7 @@ export interface TsSqlxConfig {
     unable_to_analyze: 'error' | 'warning' | 'info' | 'off';
     no_connection: 'error' | 'warning' | 'info' | 'off';
   };
+  types: Record<string, string>;
 }
 
 const DEFAULTS: TsSqlxConfig = {
@@ -36,7 +37,35 @@ const DEFAULTS: TsSqlxConfig = {
     unable_to_analyze: 'info',
     no_connection: 'warning',
   },
+  types: {},
 };
+
+export interface TypeOverride {
+  tsType: string;
+  importFrom?: string;
+}
+
+export function parseTypeOverrides(
+  types: Record<string, string>,
+): Map<string, TypeOverride> {
+  const map = new Map<string, TypeOverride>();
+  for (const [pgType, value] of Object.entries(types)) {
+    const hashIdx = value.indexOf('#');
+    if (hashIdx === -1) {
+      map.set(pgType, { tsType: value });
+    } else {
+      const importFrom = value.slice(0, hashIdx);
+      const tsType = value.slice(hashIdx + 1);
+      if (!importFrom || !tsType) {
+        throw new Error(
+          `Invalid type override for '${pgType}': both module and type name are required in '${value}'`,
+        );
+      }
+      map.set(pgType, { tsType, importFrom });
+    }
+  }
+  return map;
+}
 
 export function parseConfig(tomlText: string): TsSqlxConfig {
   const parsed = parseToml(tomlText) as Record<string, unknown>;
@@ -44,6 +73,7 @@ export function parseConfig(tomlText: string): TsSqlxConfig {
   const paths = (parsed.paths ?? {}) as Record<string, unknown>;
   const cache = (parsed.cache ?? {}) as Record<string, unknown>;
   const diag = (parsed.diagnostics ?? {}) as Record<string, unknown>;
+  const types = (parsed.types ?? {}) as Record<string, string>;
 
   return {
     database: {
@@ -63,6 +93,7 @@ export function parseConfig(tomlText: string): TsSqlxConfig {
       unable_to_analyze: (diag.unable_to_analyze as TsSqlxConfig['diagnostics']['unable_to_analyze']) ?? DEFAULTS.diagnostics.unable_to_analyze,
       no_connection: (diag.no_connection as TsSqlxConfig['diagnostics']['no_connection']) ?? DEFAULTS.diagnostics.no_connection,
     },
+    types: { ...types },
   };
 }
 
