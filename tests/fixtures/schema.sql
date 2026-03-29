@@ -74,3 +74,27 @@ CREATE TABLE type_showcase (
     -- Full-text search
     search_vector TSVECTOR
 );
+
+CREATE TABLE categories (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    parent_id INTEGER REFERENCES categories(id)
+);
+
+CREATE TABLE orders (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id),
+    status status_enum NOT NULL DEFAULT 'draft',
+    total NUMERIC(10, 2) NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE order_items (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL REFERENCES orders(id),
+    product_name TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    unit_price NUMERIC(10, 2) NOT NULL
+);
