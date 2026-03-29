@@ -1,6 +1,7 @@
 import type { DatabaseAdapter, QueryTypeInfo } from './adapters/database/types.js';
 import type { InferredQueryType, InferredParam, InferredColumn } from './types.js';
 import type { TypeOverride } from './config.js';
+import type { NullabilityHint } from './hintExtractor.js';
 import { tsTypeFromPgType } from './adapters/database/oidMap.js';
 
 export class DbInferrer {
@@ -19,7 +20,10 @@ export class DbInferrer {
     return { tsType: isArray ? `${baseTsType}[]` : baseTsType };
   }
 
-  async infer(sql: string): Promise<InferredQueryType> {
+  async infer(
+    sql: string,
+    hints?: Map<string, NullabilityHint>,
+  ): Promise<InferredQueryType> {
     const info: QueryTypeInfo = await this.adapter.describeQuery(sql);
 
     const params: InferredParam[] = info.params.map((p, i) => {
@@ -35,11 +39,14 @@ export class DbInferrer {
 
     const columns: InferredColumn[] = info.columns.map((c) => {
       const resolved = this.resolveType(c.type.name, c.type.isArray);
+      const hint = hints?.get(c.name);
+      const nullable =
+        hint === 'nullable' ? true : hint === 'not-null' ? false : c.nullable;
       return {
         name: c.name,
         pgType: c.type.name,
         tsType: resolved.tsType,
-        nullable: c.nullable,
+        nullable,
         ...(resolved.importFrom ? { importFrom: resolved.importFrom } : {}),
       };
     });

@@ -6,6 +6,7 @@ import { QueryDetector } from './queryDetector.js';
 import { extractParams } from './paramExtractor.js';
 import { parseSqlAsync } from './sqlAnalyzer.js';
 import { DbInferrer } from './dbInferrer.js';
+import { extractNullabilityHints } from './hintExtractor.js';
 import { compareTypes, generateTypeAnnotation } from './typeComparator.js';
 import { perf } from './perf.js';
 
@@ -72,8 +73,11 @@ export class DiagnosticsEngine {
       });
     }
 
+    // Extract nullability hints from leading block comment
+    const { cleanedSql, hints } = extractNullabilityHints(query.sqlText);
+
     // Extract params and check for param syntax errors
-    const extracted = extractParams(query.sqlText);
+    const extracted = extractParams(cleanedSql);
     for (const err of extracted.errors) {
       diagnostics.push({
         code: 'TS001',
@@ -157,7 +161,7 @@ export class DiagnosticsEngine {
 
     try {
       const inferred = await perf.withTiming('dbInfer', () =>
-        this.inferrer!.infer(extracted.normalized),
+        this.inferrer!.infer(extracted.normalized, hints),
       );
       inferredColumns = inferred.columns;
 

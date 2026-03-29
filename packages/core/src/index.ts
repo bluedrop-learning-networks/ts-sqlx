@@ -15,6 +15,8 @@ export { compareTypes, generateTypeAnnotation } from './typeComparator.js';
 export type { DeclaredProperty, CompareResult, GeneratedAnnotation, TypeImport } from './typeComparator.js';
 export { DiagnosticsEngine } from './diagnostics.js';
 export { TypeCache } from './cache.js';
+export { extractNullabilityHints } from './hintExtractor.js';
+export type { NullabilityHint, HintExtractionResult } from './hintExtractor.js';
 export { parseConfig, resolveConfig, parseTypeOverrides } from './config.js';
 export type { TsSqlxConfig, TypeOverride } from './config.js';
 export { PerfCollector, perf } from './perf.js';
