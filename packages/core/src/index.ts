@@ -17,3 +17,5 @@ export { DiagnosticsEngine } from './diagnostics.js';
 export { TypeCache } from './cache.js';
 export { parseConfig, resolveConfig } from './config.js';
 export type { TsSqlxConfig } from './config.js';
+export { PerfCollector, perf } from './perf.js';
+export type { PerfSummary, PerfPhaseSummary } from './perf.js';

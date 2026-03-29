@@ -15,6 +15,7 @@ import { DiagnosticsEngine } from '@ts-sqlx/core/diagnostics.js';
 import { createDatabaseAdapter } from '@ts-sqlx/core/adapters/database/adapterFactory.js';
 import { TsMorphAdapter } from '@ts-sqlx/core/adapters/typescript/tsMorphAdapter.js';
 import { resolveConfig } from '@ts-sqlx/core/config.js';
+import { perf } from '@ts-sqlx/core/perf.js';
 import { generateTypeAnnotation } from '@ts-sqlx/core';
 import type { Diagnostic, DiagnosticSeverity, AnalysisResult } from '@ts-sqlx/core/types.js';
 import { createAddTypeAnnotationAction, createUpdateTypeAnnotationAction } from './codeActions.js';
@@ -77,7 +78,7 @@ documents.onDidChangeContent(async (change) => {
   try {
     const text = change.document.getText();
     if (tsAdapter) {
-      tsAdapter.updateFile(filePath, text);
+      perf.withTiming('updateFile', () => tsAdapter!.updateFile(filePath, text));
     }
     const result = await engine.analyzeWithContext(filePath);
     analysisResults.set(uri, result);

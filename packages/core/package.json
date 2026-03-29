@@ -36,6 +36,10 @@
     "./cache.js": {
       "types": "./dist/cache.d.ts",
       "default": "./dist/cache.js"
+    },
+    "./perf.js": {
+      "types": "./dist/perf.d.ts",
+      "default": "./dist/perf.js"
     }
   },
   "scripts": {

@@ -6,6 +6,7 @@ import { extractParams } from './paramExtractor.js';
 import { parseSqlAsync } from './sqlAnalyzer.js';
 import { DbInferrer } from './dbInferrer.js';
 import { compareTypes, generateTypeAnnotation } from './typeComparator.js';
+import { perf } from './perf.js';
 
 export class DiagnosticsEngine {
   private queryDetector: QueryDetector;
@@ -25,16 +26,23 @@ export class DiagnosticsEngine {
   }
 
   async analyzeWithContext(filePath: string): Promise<AnalysisResult> {
+    perf.reset();
     const allDiagnostics: Diagnostic[] = [];
     const queryAnalyses: QueryAnalysis[] = [];
-    const queries = this.queryDetector.detectQueries(filePath);
+    const queries = perf.withTiming('detectQueries', () =>
+      this.queryDetector.detectQueries(filePath),
+    );
 
     for (const query of queries) {
-      const { diagnostics, inferredColumns } = await this.analyzeQuery(query, filePath);
+      const { diagnostics, inferredColumns } = await perf.withTiming('analyzeQuery', () =>
+        this.analyzeQuery(query, filePath),
+      );
       allDiagnostics.push(...diagnostics);
       queryAnalyses.push({ query, diagnostics, inferredColumns });
     }
 
+    const summary = perf.summarize();
+    perf.logSummary(filePath, summary);
     return { diagnostics: allDiagnostics, queries: queryAnalyses };
   }
 
@@ -119,7 +127,9 @@ export class DiagnosticsEngine {
     }
 
     // TS001: SQL syntax errors via parseSql
-    const parseResult = await parseSqlAsync(extracted.normalized);
+    const parseResult = await perf.withTiming('parseSqlAsync', () =>
+      parseSqlAsync(extracted.normalized),
+    );
     if (!parseResult.valid) {
       diagnostics.push({
         code: 'TS001',
@@ -144,7 +154,9 @@ export class DiagnosticsEngine {
     let inferredColumns: InferredColumn[] | undefined;
 
     try {
-      const inferred = await this.inferrer!.infer(extracted.normalized);
+      const inferred = await perf.withTiming('dbInfer', () =>
+        this.inferrer!.infer(extracted.normalized),
+      );
       inferredColumns = inferred.columns;
 
       // TS004: Type mismatch between TS param types and inferred SQL param types
@@ -174,7 +186,9 @@ export class DiagnosticsEngine {
       if (query.declaredResultType) {
         const declaredProps = query.resolvedTypeProperties?.length
           ? query.resolvedTypeProperties
-          : this.tsAdapter.getTypeProperties(query.declaredResultType, filePath);
+          : perf.withTiming('getTypeProperties', () =>
+              this.tsAdapter.getTypeProperties(query.declaredResultType!, filePath),
+            );
 
         if (declaredProps.length > 0) {
           const comparison = compareTypes(inferred.columns, declaredProps);

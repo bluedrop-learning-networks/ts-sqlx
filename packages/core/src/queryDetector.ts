@@ -1,5 +1,6 @@
 import type { TypeScriptAdapter, CallExpressionInfo } from './adapters/typescript/types.js';
 import type { QueryCallInfo, QueryMethod, QueryLibrary } from './types.js';
+import { perf } from './perf.js';
 
 const PG_PROMISE_METHODS: Set<string> = new Set([
   'one', 'oneOrNone', 'many', 'manyOrNone', 'any',
@@ -12,7 +13,9 @@ export class QueryDetector {
   constructor(private tsAdapter: TypeScriptAdapter) {}
 
   detectQueries(filePath: string): QueryCallInfo[] {
-    const calls = this.tsAdapter.getCallExpressions(filePath);
+    const calls = perf.withTiming('getCallExpressions', () =>
+      this.tsAdapter.getCallExpressions(filePath),
+    );
     const results: QueryCallInfo[] = [];
 
     for (const call of calls) {
@@ -40,7 +43,9 @@ export class QueryDetector {
     let sqlText: string | undefined;
     if (call.arguments.length > 0) {
       const sqlArg = call.arguments[0];
-      sqlText = this.tsAdapter.resolveStringLiteral(filePath, sqlArg.position);
+      sqlText = perf.withTiming('resolveStringLiteral', () =>
+        this.tsAdapter.resolveStringLiteral(filePath, sqlArg.position),
+      );
       if (sqlText === undefined) {
         sqlText = this.extractStringValue(sqlArg.text);
       }
