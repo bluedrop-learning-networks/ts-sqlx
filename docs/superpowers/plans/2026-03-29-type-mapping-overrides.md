@@ -567,7 +567,7 @@ to:
 const { typeText: generatedType, imports: requiredImports } = generateTypeAnnotation(queryAnalysis.inferredColumns);
 ```
 
-(The `requiredImports` variable will be used in Task 7. For now it's unused but the code compiles.)
+The `requiredImports` variable is wired up in Task 7. It is temporarily unused but the `imports` default value (`[]`) means it compiles cleanly.
 
 - [ ] **Step 7: Update existing tests that expect a string return**
 
@@ -605,7 +605,7 @@ Expected: PASS
 - [ ] **Step 9: Commit**
 
 ```bash
-git add packages/core/src/typeComparator.ts packages/core/src/index.ts packages/language-server/src/server.ts
+git add packages/core/src/typeComparator.ts packages/core/src/index.ts packages/language-server/src/server.ts tests/integration/codeActions.test.ts
 git commit -m "feat: generateTypeAnnotation returns GeneratedAnnotation with imports"
 ```
 
@@ -622,7 +622,7 @@ git commit -m "feat: generateTypeAnnotation returns GeneratedAnnotation with imp
 
 Add to `tests/integration/codeActions.test.ts`:
 
-Add a new `describe` block inside the existing `describe('Code action wiring', ...)`:
+Add a new `describe` block inside the existing `describe('Code action wiring', ...)` in `tests/integration/codeActions.test.ts`. Note: `createAddTypeAnnotationAction` and `createUpdateTypeAnnotationAction` are already imported at line 7 — no new import needed.
 
 ```typescript
 describe('code actions with imports', () => {
