@@ -172,7 +172,10 @@ export class DiagnosticsEngine {
 
       // TS010: declared vs inferred type mismatch
       if (query.declaredResultType) {
-        const declaredProps = this.tsAdapter.getTypeProperties(query.declaredResultType, filePath);
+        const declaredProps = query.resolvedTypeProperties?.length
+          ? query.resolvedTypeProperties
+          : this.tsAdapter.getTypeProperties(query.declaredResultType, filePath);
+
         if (declaredProps.length > 0) {
           const comparison = compareTypes(inferred.columns, declaredProps);
           if (!comparison.match) {
@@ -185,6 +188,13 @@ export class DiagnosticsEngine {
               });
             }
           }
+        } else {
+          diagnostics.push({
+            code: 'TS011',
+            severity: 'info',
+            message: `Unable to resolve type '${query.declaredResultType}' for comparison`,
+            range: query.position,
+          });
         }
       }
     } catch (e: unknown) {

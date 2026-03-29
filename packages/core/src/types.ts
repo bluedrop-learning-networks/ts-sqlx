@@ -1,3 +1,5 @@
+import type { PropertyInfo } from './adapters/typescript/types.js';
+
 // Text range in source
 export interface TextRange {
   start: number;
@@ -7,7 +9,7 @@ export interface TextRange {
 // Diagnostic codes
 export type DiagnosticCode =
   | 'TS001' | 'TS002' | 'TS003' | 'TS004' | 'TS005'
-  | 'TS006' | 'TS007' | 'TS008' | 'TS009' | 'TS010';
+  | 'TS006' | 'TS007' | 'TS008' | 'TS009' | 'TS010' | 'TS011';
 
 export type DiagnosticSeverity = 'error' | 'warning' | 'info';
 
@@ -40,6 +42,8 @@ export interface QueryCallInfo {
   insertTypePosition: number;
   /** Range covering the existing `<...>` type arguments, including angle brackets. */
   typeArgumentRange?: TextRange;
+  /** Resolved properties of the first type argument (result type), if available. */
+  resolvedTypeProperties?: PropertyInfo[];
 }
 
 // Parameter extraction

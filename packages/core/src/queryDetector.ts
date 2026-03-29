@@ -58,6 +58,7 @@ export class QueryDetector {
       position: call.position,
       insertTypePosition: call.insertTypePosition,
       typeArgumentRange: call.typeArgumentRange,
+      resolvedTypeProperties: call.resolvedTypeProperties,
     };
   }
 

@@ -2,7 +2,7 @@ export interface TextRange {
     start: number;
     end: number;
 }
-export type DiagnosticCode = 'TS001' | 'TS002' | 'TS003' | 'TS004' | 'TS005' | 'TS006' | 'TS007' | 'TS008' | 'TS009' | 'TS010';
+export type DiagnosticCode = 'TS001' | 'TS002' | 'TS003' | 'TS004' | 'TS005' | 'TS006' | 'TS007' | 'TS008' | 'TS009' | 'TS010' | 'TS011';
 export type DiagnosticSeverity = 'error' | 'warning' | 'info';
 export interface Diagnostic {
     code: DiagnosticCode;

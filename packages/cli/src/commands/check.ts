@@ -1,6 +1,6 @@
 import { command, positional, flag, string, optional } from 'cmd-ts';
 import { DiagnosticsEngine } from '@ts-sqlx/core/diagnostics.js';
-import { PGLiteAdapter } from '@ts-sqlx/core/adapters/database/pgliteAdapter.js';
+import { createDatabaseAdapter } from '@ts-sqlx/core/adapters/database/adapterFactory.js';
 import { TsMorphAdapter } from '@ts-sqlx/core/adapters/typescript/tsMorphAdapter.js';
 import { resolveConfig } from '@ts-sqlx/core/config.js';
 import { glob } from 'glob';
@@ -26,13 +26,17 @@ export const checkCommand = command({
     }
 
     let dbAdapter = null;
-    if (config.database.pglite && config.database.schema) {
-      const adapter = await PGLiteAdapter.create();
-      const schemaPath = path.resolve(cwd, config.database.schema);
-      if (fs.existsSync(schemaPath)) {
-        await adapter.executeSchema(fs.readFileSync(schemaPath, 'utf8'));
+    try {
+      dbAdapter = await createDatabaseAdapter(config);
+      if (dbAdapter && config.database.pglite && config.database.schema) {
+        const schemaPath = path.resolve(cwd, config.database.schema);
+        if (fs.existsSync(schemaPath)) {
+          await dbAdapter.executeSchema(fs.readFileSync(schemaPath, 'utf8'));
+        }
       }
-      dbAdapter = adapter;
+    } catch (e) {
+      console.error(`Failed to initialize database: ${(e as Error).message}`);
+      process.exit(1);
     }
 
     const engine = new DiagnosticsEngine(dbAdapter, tsAdapter);

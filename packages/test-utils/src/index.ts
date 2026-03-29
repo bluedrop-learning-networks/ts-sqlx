@@ -9,3 +9,5 @@ export type {
   FixtureResult,
   FixtureError,
 } from './fixtureRunner.js';
+export { createPgFixture } from './pgFixture.js';
+export type { PgFixture } from './pgFixture.js';

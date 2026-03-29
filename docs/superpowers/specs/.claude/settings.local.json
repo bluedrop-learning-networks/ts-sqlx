@@ -4,7 +4,20 @@
       "mcp__deepwiki__ask_question",
       "Bash(tk --help)",
       "Bash(tk create:*)",
-      "Bash(wc -l /tmp/ts-sqlx-tasks/*.md)"
+      "Bash(wc -l /tmp/ts-sqlx-tasks/*.md)",
+      "mcp__deepwiki__read_wiki_structure",
+      "WebSearch",
+      "mcp__deepwiki__read_wiki_contents",
+      "Bash(ls -la /Users/donalmacanri/projects/ts-sqlx/*.md)",
+      "Read(//Users/donalmacanri/projects/**)",
+      "Bash(find . -name *.ts -path */pgtyped/* -type f)",
+      "Bash(find /Users/donalmacanri/projects/skillspass-backend-core -name *.json -o -name *.md)",
+      "Bash(find /Users/donalmacanri/projects/skillspass-backend-core/master/node_modules/.pnpm/@pgtyped* -name *.js -o -name *.ts)",
+      "Bash(grep:*)",
+      "Bash(tk show:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls tsconfig*.json packages/core/tsconfig*.json)"
     ]
   }
 }

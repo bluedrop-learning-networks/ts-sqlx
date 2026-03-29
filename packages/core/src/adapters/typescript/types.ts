@@ -20,6 +20,8 @@ export interface CallExpressionInfo {
   insertTypePosition: number;
   /** Range covering the existing `<...>` type arguments, including angle brackets. */
   typeArgumentRange?: { start: number; end: number };
+  /** Resolved properties of the first type argument (result type), if available. */
+  resolvedTypeProperties?: PropertyInfo[];
 }
 
 export interface ResolvedImport {

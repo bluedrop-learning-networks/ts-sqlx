@@ -2,6 +2,8 @@ export * from './types.js';
 export * from './adapters/database/types.js';
 export * from './adapters/database/oidMap.js';
 export { PGLiteAdapter } from './adapters/database/pgliteAdapter.js';
+export { PgAdapter } from './adapters/database/pgAdapter.js';
+export { createDatabaseAdapter } from './adapters/database/adapterFactory.js';
 export * from './adapters/typescript/types.js';
 export { TsMorphAdapter } from './adapters/typescript/tsMorphAdapter.js';
 export { extractParams } from './paramExtractor.js';

@@ -87,6 +87,25 @@ export class TsMorphAdapter implements TypeScriptAdapter {
       const methodName = expr.getName();
 
       const typeArgs = node.getTypeArguments().map((t) => t.getText());
+
+      // Resolve the first type argument (result type) using the type checker
+      let resolvedTypeProperties: PropertyInfo[] | undefined;
+      if (typeArgs.length > 0) {
+        const firstTypeArg = node.getTypeArguments()[0];
+        const resolvedType = firstTypeArg.getType();
+        const props = resolvedType.getProperties();
+        if (props.length > 0) {
+          resolvedTypeProperties = props.map((prop) => {
+            const decl = prop.getDeclarations()[0];
+            return {
+              name: prop.getName(),
+              type: prop.getTypeAtLocation(firstTypeArg).getText(),
+              optional: decl ? Node.isPropertySignature(decl) && decl.hasQuestionToken() : false,
+            };
+          });
+        }
+      }
+
       const args: ArgumentInfo[] = node.getArguments().map((arg) => ({
         position: arg.getStart(),
         type: arg.getType().getText(),
@@ -111,6 +130,7 @@ export class TsMorphAdapter implements TypeScriptAdapter {
         position: { start: node.getStart(), end: node.getEnd() },
         insertTypePosition,
         typeArgumentRange,
+        resolvedTypeProperties,
       });
     });
 

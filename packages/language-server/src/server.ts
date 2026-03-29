@@ -12,7 +12,7 @@ import {
 } from 'vscode-languageserver/node.js';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { DiagnosticsEngine } from '@ts-sqlx/core/diagnostics.js';
-import { PGLiteAdapter } from '@ts-sqlx/core/adapters/database/pgliteAdapter.js';
+import { createDatabaseAdapter } from '@ts-sqlx/core/adapters/database/adapterFactory.js';
 import { TsMorphAdapter } from '@ts-sqlx/core/adapters/typescript/tsMorphAdapter.js';
 import { resolveConfig } from '@ts-sqlx/core/config.js';
 import { generateTypeAnnotation } from '@ts-sqlx/core';
@@ -25,6 +25,7 @@ const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
 
 let engine: DiagnosticsEngine | null = null;
+let tsAdapter: TsMorphAdapter | null = null;
 const analysisResults = new Map<string, AnalysisResult>();
 
 connection.onInitialize(async (params: InitializeParams): Promise<InitializeResult> => {
@@ -33,24 +34,23 @@ connection.onInitialize(async (params: InitializeParams): Promise<InitializeResu
     const rootPath = new URL(rootUri).pathname;
     const config = resolveConfig(rootPath);
 
-    const tsAdapter = new TsMorphAdapter();
+    tsAdapter = new TsMorphAdapter();
     const tsConfigPath = path.join(rootPath, 'tsconfig.json');
     if (fs.existsSync(tsConfigPath)) {
       tsAdapter.loadProject(tsConfigPath);
     }
 
     let dbAdapter = null;
-    if (config.database.pglite && config.database.schema) {
-      try {
-        const adapter = await PGLiteAdapter.create();
+    try {
+      dbAdapter = await createDatabaseAdapter(config);
+      if (dbAdapter && config.database.pglite && config.database.schema) {
         const schemaPath = path.resolve(rootPath, config.database.schema);
         if (fs.existsSync(schemaPath)) {
-          await adapter.executeSchema(fs.readFileSync(schemaPath, 'utf8'));
+          await dbAdapter.executeSchema(fs.readFileSync(schemaPath, 'utf8'));
         }
-        dbAdapter = adapter;
-      } catch (e) {
-        connection.console.error(`Failed to initialize PGLite: ${(e as Error).message}`);
       }
+    } catch (e) {
+      connection.console.error(`Failed to initialize database adapter: ${(e as Error).message}`);
     }
 
     engine = new DiagnosticsEngine(dbAdapter, tsAdapter);
@@ -76,6 +76,9 @@ documents.onDidChangeContent(async (change) => {
 
   try {
     const text = change.document.getText();
+    if (tsAdapter) {
+      tsAdapter.updateFile(filePath, text);
+    }
     const result = await engine.analyzeWithContext(filePath);
     analysisResults.set(uri, result);
     connection.sendDiagnostics({
