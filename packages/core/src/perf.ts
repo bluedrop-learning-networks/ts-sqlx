@@ -73,6 +73,7 @@ export class PerfCollector {
   }
 
   logSummary(filePath: string, summary: PerfSummary): void {
+    if (!this.enabled) return;
     const lines: string[] = [`[perf] Analysis summary for ${filePath}`];
     lines.push('  Phase                 Count  Total   Min     Max     Avg');
 
