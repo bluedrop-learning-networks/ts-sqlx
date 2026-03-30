@@ -6,6 +6,7 @@ import { resolveConfig, parseTypeOverrides } from '@ts-sqlx/core/config.js';
 import { glob } from 'glob';
 import * as fs from 'fs';
 import * as path from 'path';
+import { formatDiagnostics, type FileDiagnostic } from '../reporter.js';
 
 export const checkCommand = command({
   name: 'check',
@@ -14,8 +15,9 @@ export const checkCommand = command({
     pattern: positional({ type: optional(string), displayName: 'glob' }),
     staged: flag({ long: 'staged', description: 'Check staged files only' }),
     changed: flag({ long: 'changed', description: 'Check changed files' }),
+    verbose: flag({ long: 'verbose', description: 'Show source snippets for diagnostics' }),
   },
-  async handler({ pattern, staged, changed }) {
+  async handler({ pattern, staged, changed, verbose }) {
     const cwd = process.cwd();
     const { config, configDir } = resolveConfig(cwd);
 
@@ -49,26 +51,22 @@ export const checkCommand = command({
       absolute: true,
     });
 
-    let totalErrors = 0;
+    const allDiagnostics: FileDiagnostic[] = [];
     for (const file of files) {
       if (!file.endsWith('.ts')) continue;
       const diagnostics = await engine.analyze(file);
-
       for (const d of diagnostics) {
-        const relPath = path.relative(cwd, file);
-        console.log(`${relPath}: ${d.code} ${d.severity}: ${d.message}`);
+        allDiagnostics.push({ filePath: file, diagnostic: d });
       }
-
-      totalErrors += diagnostics.filter(d => d.severity === 'error').length;
     }
 
     if (dbAdapter) await dbAdapter.disconnect();
 
-    if (totalErrors > 0) {
-      console.log(`\n${totalErrors} error(s) found.`);
+    console.log(formatDiagnostics(allDiagnostics, { verbose, cwd }));
+
+    const hasErrors = allDiagnostics.some(d => d.diagnostic.severity === 'error');
+    if (hasErrors) {
       process.exit(1);
-    } else {
-      console.log('No errors found.');
     }
   },
 });
