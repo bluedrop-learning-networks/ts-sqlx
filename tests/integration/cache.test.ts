@@ -1,21 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { TypeCache } from '@ts-sqlx/core/cache.js';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
 
 describe('TypeCache', () => {
   let cache: TypeCache;
-  let dbPath: string;
 
   beforeEach(() => {
-    dbPath = path.join(os.tmpdir(), `ts-sqlx-test-${Date.now()}.db`);
-    cache = new TypeCache(dbPath);
-  });
-
-  afterEach(() => {
-    cache.close();
-    if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
+    cache = new TypeCache();
   });
 
   it('returns undefined for cache miss', () => {

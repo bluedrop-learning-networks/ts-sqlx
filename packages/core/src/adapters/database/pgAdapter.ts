@@ -7,6 +7,7 @@ import type {
   CompositeField,
 } from './types.js';
 import { oidToTypeName, isArrayOid, arrayElementTypeName } from './oidMap.js';
+import { queryEnumValues, queryCompositeFields, buildNullabilityMap } from './shared.js';
 
 const { Pool } = pg;
 
@@ -198,25 +199,10 @@ export class PgAdapter implements DatabaseAdapter {
       const tableColumns = desc.fields
         .filter((f) => f.tableID && f.columnID);
 
-      const nullabilityMap = new Map<string, boolean>();
-      if (tableColumns.length > 0) {
-        const valuesList = tableColumns
-          .map((tc) => {
-            if (!Number.isInteger(tc.tableID) || !Number.isInteger(tc.columnID)) {
-              throw new Error('Unexpected non-integer tableID/columnID from wire protocol');
-            }
-            return `(${tc.tableID}, ${tc.columnID})`;
-          })
-          .join(', ');
-        const nullResult = await client.query(
-          `SELECT attrelid, attnum, NOT attnotnull AS nullable
-           FROM pg_attribute
-           WHERE (attrelid, attnum) IN (${valuesList})`
-        );
-        for (const row of nullResult.rows) {
-          nullabilityMap.set(`${row.attrelid}:${row.attnum}`, row.nullable);
-        }
-      }
+      const nullabilityMap = await buildNullabilityMap(
+        (sql, params) => client.query(sql, params),
+        tableColumns,
+      );
 
       const columns: ColumnInfo[] = desc.fields.map((f) => {
         const isArr = isArrayOid(f.dataTypeID);
@@ -250,36 +236,11 @@ export class PgAdapter implements DatabaseAdapter {
 
   async getEnumValues(typeName: string): Promise<string[]> {
     if (!this.connected) throw new Error('Not connected');
-    const result = await this.pool.query<{ enumlabel: string }>(
-      `SELECT enumlabel FROM pg_enum
-       JOIN pg_type ON pg_enum.enumtypid = pg_type.oid
-       WHERE pg_type.typname = $1
-       ORDER BY pg_enum.enumsortorder`,
-      [typeName]
-    );
-    return result.rows.map((r) => r.enumlabel);
+    return queryEnumValues((sql, params) => this.pool.query(sql, params), typeName);
   }
 
   async getCompositeFields(typeName: string): Promise<CompositeField[]> {
     if (!this.connected) throw new Error('Not connected');
-    const result = await this.pool.query<{
-      attname: string;
-      atttypid: number;
-    }>(
-      `SELECT a.attname, a.atttypid
-       FROM pg_attribute a
-       JOIN pg_type t ON a.attrelid = t.typrelid
-       WHERE t.typname = $1 AND a.attnum > 0
-       ORDER BY a.attnum`,
-      [typeName]
-    );
-    return result.rows.map((r) => ({
-      name: r.attname,
-      type: {
-        oid: r.atttypid,
-        name: oidToTypeName(r.atttypid),
-        isArray: isArrayOid(r.atttypid),
-      },
-    }));
+    return queryCompositeFields((sql, params) => this.pool.query(sql, params), typeName);
   }
 }

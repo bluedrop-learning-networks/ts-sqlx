@@ -5,6 +5,7 @@ import type {
   CompositeField,
 } from './types.js';
 import { oidToTypeName, isArrayOid, arrayElementTypeName } from './oidMap.js';
+import { queryEnumValues, queryCompositeFields, buildNullabilityMap } from './shared.js';
 
 export class PGLiteAdapter implements DatabaseAdapter {
   private db: PGlite | null = null;
@@ -115,24 +116,10 @@ export class PGLiteAdapter implements DatabaseAdapter {
       (f: any) => f.tableID && f.columnID,
     );
 
-    const nullabilityMap = new Map<string, boolean>();
-    if (tableColumns.length > 0) {
-      const valuesList = tableColumns
-        .map((tc: any) => `(${tc.tableID}, ${tc.columnID})`)
-        .join(', ');
-      const nullResult = await this.db.query<{
-        attrelid: number;
-        attnum: number;
-        nullable: boolean;
-      }>(
-        `SELECT attrelid, attnum, NOT attnotnull AS nullable
-         FROM pg_attribute
-         WHERE (attrelid, attnum) IN (${valuesList})`,
-      );
-      for (const row of nullResult.rows) {
-        nullabilityMap.set(`${row.attrelid}:${row.attnum}`, row.nullable);
-      }
-    }
+    const nullabilityMap = await buildNullabilityMap(
+      (sql, params) => this.db!.query(sql, params),
+      tableColumns,
+    );
 
     const columns = baseColumns.map((col, i) => {
       const pf = protoFields![i];
@@ -210,37 +197,12 @@ export class PGLiteAdapter implements DatabaseAdapter {
 
   async getEnumValues(typeName: string): Promise<string[]> {
     if (!this.db) throw new Error('Not connected');
-    const result = await this.db.query<{ enumlabel: string }>(
-      `SELECT enumlabel FROM pg_enum
-       JOIN pg_type ON pg_enum.enumtypid = pg_type.oid
-       WHERE pg_type.typname = $1
-       ORDER BY pg_enum.enumsortorder`,
-      [typeName]
-    );
-    return result.rows.map((r) => r.enumlabel);
+    return queryEnumValues((sql, params) => this.db!.query(sql, params), typeName);
   }
 
   async getCompositeFields(typeName: string): Promise<CompositeField[]> {
     if (!this.db) throw new Error('Not connected');
-    const result = await this.db.query<{
-      attname: string;
-      atttypid: number;
-    }>(
-      `SELECT a.attname, a.atttypid
-       FROM pg_attribute a
-       JOIN pg_type t ON a.attrelid = t.typrelid
-       WHERE t.typname = $1 AND a.attnum > 0
-       ORDER BY a.attnum`,
-      [typeName]
-    );
-    return result.rows.map((r) => ({
-      name: r.attname,
-      type: {
-        oid: r.atttypid,
-        name: oidToTypeName(r.atttypid),
-        isArray: isArrayOid(r.atttypid),
-      },
-    }));
+    return queryCompositeFields((sql, params) => this.db!.query(sql, params), typeName);
   }
 }
 

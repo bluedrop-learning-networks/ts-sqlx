@@ -47,14 +47,12 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.0",
-    "better-sqlite3": "^11.0.0",
     "libpg-query": "^15.2.0",
     "pg": "^8.13.0",
     "smol-toml": "^1.6.1",
     "ts-morph": "^25.0.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^22.19.15",
     "@types/pg": "^8.11.0",
     "typescript": "^5.7.0"
