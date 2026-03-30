@@ -65,14 +65,24 @@ schema = "schema.sql"
 describe('resolveConfig', () => {
   it('finds config in fixtures directory', () => {
     const fixturesDir = path.join(__dirname, '../fixtures');
-    const config = resolveConfig(fixturesDir);
+    const { config, configDir } = resolveConfig(fixturesDir);
     expect(config).toBeDefined();
+    expect(configDir).toBe(fixturesDir);
   });
 
   it('returns defaults when no config found', () => {
-    const config = resolveConfig('/tmp/nonexistent');
+    const { config } = resolveConfig('/tmp/nonexistent');
     expect(config).toBeDefined();
     expect(config.paths.include).toEqual(['**/*.ts']);
+  });
+
+  it('resolves configDir to the directory containing the config file', () => {
+    // fixtures dir has ts-sqlx.toml; a subdirectory should still resolve to fixtures
+    const fixturesDir = path.join(__dirname, '../fixtures');
+    const subDir = path.join(fixturesDir, 'sub');
+    // Even if sub doesn't exist, resolveConfig walks up and finds fixtures/ts-sqlx.toml
+    const { configDir } = resolveConfig(subDir);
+    expect(configDir).toBe(fixturesDir);
   });
 });
 

@@ -33,7 +33,7 @@ connection.onInitialize(async (params: InitializeParams): Promise<InitializeResu
   const rootUri = params.rootUri;
   if (rootUri) {
     const rootPath = new URL(rootUri).pathname;
-    const config = resolveConfig(rootPath);
+    const { config, configDir } = resolveConfig(rootPath);
 
     tsAdapter = new TsMorphAdapter();
     const tsConfigPath = path.join(rootPath, 'tsconfig.json');
@@ -45,7 +45,7 @@ connection.onInitialize(async (params: InitializeParams): Promise<InitializeResu
     try {
       dbAdapter = await createDatabaseAdapter(config);
       if (dbAdapter && config.database.pglite && config.database.schema) {
-        const schemaPath = path.resolve(rootPath, config.database.schema);
+        const schemaPath = path.resolve(configDir, config.database.schema);
         if (fs.existsSync(schemaPath)) {
           await dbAdapter.executeSchema(fs.readFileSync(schemaPath, 'utf8'));
         }

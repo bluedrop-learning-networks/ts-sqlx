@@ -17,7 +17,7 @@ export const checkCommand = command({
   },
   async handler({ pattern, staged, changed }) {
     const cwd = process.cwd();
-    const config = resolveConfig(cwd);
+    const { config, configDir } = resolveConfig(cwd);
 
     const tsAdapter = new TsMorphAdapter();
     const tsConfigPath = path.join(cwd, 'tsconfig.json');
@@ -29,7 +29,7 @@ export const checkCommand = command({
     try {
       dbAdapter = await createDatabaseAdapter(config);
       if (dbAdapter && config.database.pglite && config.database.schema) {
-        const schemaPath = path.resolve(cwd, config.database.schema);
+        const schemaPath = path.resolve(configDir, config.database.schema);
         if (fs.existsSync(schemaPath)) {
           await dbAdapter.executeSchema(fs.readFileSync(schemaPath, 'utf8'));
         }

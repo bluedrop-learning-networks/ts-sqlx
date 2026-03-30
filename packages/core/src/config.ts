@@ -97,7 +97,13 @@ export function parseConfig(tomlText: string): TsSqlxConfig {
   };
 }
 
-export function resolveConfig(startDir: string): TsSqlxConfig {
+export interface ResolvedConfig {
+  config: TsSqlxConfig;
+  /** Directory containing the config file (or startDir if no file found) */
+  configDir: string;
+}
+
+export function resolveConfig(startDir: string): ResolvedConfig {
   let dir = startDir;
   while (true) {
     const configPath = path.join(dir, 'ts-sqlx.toml');
@@ -107,7 +113,7 @@ export function resolveConfig(startDir: string): TsSqlxConfig {
         const envVar = config.database.url.slice(1);
         config.database.url = process.env[envVar] || config.database.url;
       }
-      return config;
+      return { config, configDir: dir };
     }
     const parent = path.dirname(dir);
     if (parent === dir) break;
@@ -118,15 +124,15 @@ export function resolveConfig(startDir: string): TsSqlxConfig {
 
   if (process.env.DATABASE_URL) {
     defaults.database.url = process.env.DATABASE_URL;
-    return defaults;
+    return { config: defaults, configDir: startDir };
   }
 
   const schemaPath = path.join(startDir, 'schema.sql');
   if (fs.existsSync(schemaPath)) {
     defaults.database.pglite = true;
     defaults.database.schema = 'schema.sql';
-    return defaults;
+    return { config: defaults, configDir: startDir };
   }
 
-  return defaults;
+  return { config: defaults, configDir: startDir };
 }

@@ -8,8 +8,8 @@ const statusCommand = command({
   description: 'Show cache status',
   args: {},
   handler() {
-    const config = resolveConfig(process.cwd());
-    const cachePath = path.resolve(process.cwd(), config.cache.path);
+    const { config, configDir } = resolveConfig(process.cwd());
+    const cachePath = path.resolve(configDir, config.cache.path);
     const cache = new TypeCache(cachePath);
     const stats = cache.stats();
     console.log(`Cache: ${cachePath}`);
@@ -23,8 +23,8 @@ const clearCommand = command({
   description: 'Clear type cache',
   args: {},
   handler() {
-    const config = resolveConfig(process.cwd());
-    const cachePath = path.resolve(process.cwd(), config.cache.path);
+    const { config, configDir } = resolveConfig(process.cwd());
+    const cachePath = path.resolve(configDir, config.cache.path);
     const cache = new TypeCache(cachePath);
     cache.clear();
     console.log('Cache cleared.');
