@@ -98,19 +98,15 @@ export class PGLiteAdapter implements DatabaseAdapter {
       };
     });
 
-    // Then try execProtocol to get tableID/columnID for accurate nullability.
-    // execProtocol can crash PGLite's WASM on invalid SQL, but we've already
-    // validated the SQL above, so this should be safe for valid queries.
+    // Use execProtocol to get tableID/columnID for accurate nullability.
+    // describeQuery() above already validated the SQL, so execProtocol should
+    // not encounter parse errors. If it does crash, we must let it propagate —
+    // a WASM crash permanently corrupts the PGLite instance, so silently
+    // falling back would hide the real problem.
     const stmtName = `_ts_sqlx_${++PGLiteAdapter.stmtCounter}`;
-    let protoFields: any[] | null = null;
-    try {
-      const proto = await this.describeViaProtocol(sql, stmtName);
-      protoFields = proto.fields;
-    } catch {
-      // execProtocol failed — use base columns with nullable: true
-    }
+    const { fields: protoFields } = await this.describeViaProtocol(sql, stmtName);
 
-    if (!protoFields || protoFields.length !== baseColumns.length) {
+    if (protoFields.length !== baseColumns.length) {
       return { params, columns: baseColumns };
     }
 
