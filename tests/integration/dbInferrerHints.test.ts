@@ -71,6 +71,8 @@ describe('DbInferrer with nullability hints', () => {
   it('works with no hints (backward compatible)', async () => {
     const result = await inferrer.infer('SELECT id, email FROM users');
     expect(result.columns).toHaveLength(2);
-    expect(result.columns[0].nullable).toBe(true);
+    // id and email are NOT NULL columns — PGLite now returns accurate nullability
+    expect(result.columns[0].nullable).toBe(false);
+    expect(result.columns[1].nullable).toBe(false);
   });
 });

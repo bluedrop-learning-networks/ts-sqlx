@@ -107,13 +107,13 @@ describe('Nullability: PgAdapter vs PGLite', () => {
     });
   });
 
-  describe('PGLite always returns nullable: true (limitation)', () => {
-    it('even NOT NULL columns are reported as nullable', async () => {
+  describe('PGLite returns accurate nullability via execProtocol', () => {
+    it('NOT NULL columns are reported as non-nullable', async () => {
       const info = await pgliteAdapter.describeQuery(
         'SELECT id, email, is_active FROM users'
       );
       for (const col of info.columns) {
-        expect(col.nullable).toBe(true);
+        expect(col.nullable).toBe(false);
       }
     });
   });

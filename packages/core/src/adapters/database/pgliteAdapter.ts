@@ -65,34 +65,150 @@ export class PGLiteAdapter implements DatabaseAdapter {
     }
   }
 
+  private static stmtCounter = 0;
+
   async describeQuery(sql: string): Promise<QueryTypeInfo> {
     if (!this.db) throw new Error('Not connected');
 
+    // First, use PGLite's describeQuery() which handles errors gracefully.
+    // This validates the SQL and gives us column names, types, and params.
     const result = await this.db.describeQuery(sql);
 
-    return {
-      params: (result.queryParams ?? []).map((p) => {
-        const isArr = isArrayOid(p.dataTypeID);
-        const typeName = oidToTypeName(p.dataTypeID);
-        return {
-          oid: p.dataTypeID,
+    const params = (result.queryParams ?? []).map((p) => {
+      const isArr = isArrayOid(p.dataTypeID);
+      const typeName = oidToTypeName(p.dataTypeID);
+      return {
+        oid: p.dataTypeID,
+        name: isArr ? arrayElementTypeName(typeName) : typeName,
+        isArray: isArr,
+      };
+    });
+
+    const baseColumns = (result.resultFields ?? []).map((f) => {
+      const isArr = isArrayOid(f.dataTypeID);
+      const typeName = oidToTypeName(f.dataTypeID);
+      return {
+        name: f.name,
+        type: {
+          oid: f.dataTypeID,
           name: isArr ? arrayElementTypeName(typeName) : typeName,
           isArray: isArr,
-        };
-      }),
-      columns: (result.resultFields ?? []).map((f) => {
-        const isArr = isArrayOid(f.dataTypeID);
-        const typeName = oidToTypeName(f.dataTypeID);
-        return {
-          name: f.name,
-          type: {
-            oid: f.dataTypeID,
-            name: isArr ? arrayElementTypeName(typeName) : typeName,
-            isArray: isArr,
-          },
-          nullable: true, // PGLite limitation: always assume nullable
-        };
-      }),
+        },
+        nullable: true,
+      };
+    });
+
+    // Then try execProtocol to get tableID/columnID for accurate nullability.
+    // execProtocol can crash PGLite's WASM on invalid SQL, but we've already
+    // validated the SQL above, so this should be safe for valid queries.
+    const stmtName = `_ts_sqlx_${++PGLiteAdapter.stmtCounter}`;
+    let protoFields: any[] | null = null;
+    try {
+      const proto = await this.describeViaProtocol(sql, stmtName);
+      protoFields = proto.fields;
+    } catch {
+      // execProtocol failed — use base columns with nullable: true
+    }
+
+    if (!protoFields || protoFields.length !== baseColumns.length) {
+      return { params, columns: baseColumns };
+    }
+
+    // Look up nullability from pg_attribute using tableID/columnID
+    const tableColumns = protoFields.filter(
+      (f: any) => f.tableID && f.columnID,
+    );
+
+    const nullabilityMap = new Map<string, boolean>();
+    if (tableColumns.length > 0) {
+      const valuesList = tableColumns
+        .map((tc: any) => `(${tc.tableID}, ${tc.columnID})`)
+        .join(', ');
+      const nullResult = await this.db.query<{
+        attrelid: number;
+        attnum: number;
+        nullable: boolean;
+      }>(
+        `SELECT attrelid, attnum, NOT attnotnull AS nullable
+         FROM pg_attribute
+         WHERE (attrelid, attnum) IN (${valuesList})`,
+      );
+      for (const row of nullResult.rows) {
+        nullabilityMap.set(`${row.attrelid}:${row.attnum}`, row.nullable);
+      }
+    }
+
+    const columns = baseColumns.map((col, i) => {
+      const pf = protoFields![i];
+      const nullable =
+        pf.tableID && pf.columnID
+          ? nullabilityMap.get(`${pf.tableID}:${pf.columnID}`) ?? true
+          : true;
+      return { ...col, nullable };
+    });
+
+    return { params, columns };
+  }
+
+  /**
+   * Send raw PARSE + DESCRIBE + SYNC wire protocol messages via execProtocol,
+   * then clean up with CLOSE + SYNC. Returns parameter OIDs and full
+   * RowDescription fields (including tableID/columnID).
+   */
+  private async describeViaProtocol(
+    sql: string,
+    stmtName: string,
+  ): Promise<{ params: number[]; fields: any[] }> {
+    const db = this.db!;
+
+    // Build PARSE + DESCRIBE(Statement) + SYNC
+    const parsePayload = Buffer.concat([
+      Buffer.from(stmtName + '\0'),
+      Buffer.from(sql + '\0'),
+      Buffer.from([0, 0]), // 0 parameter type OIDs
+    ]);
+    const descPayload = Buffer.concat([
+      Buffer.from('S'),
+      Buffer.from(stmtName + '\0'),
+    ]);
+    const describeMsg = Buffer.concat([
+      wireMsg('P', parsePayload),
+      wireMsg('D', descPayload),
+      wireMsg('S', Buffer.alloc(0)), // Sync
+    ]);
+
+    const result = await db.execProtocol(new Uint8Array(describeMsg));
+    const messages: any[] = (result as any).messages ?? [];
+
+    // Check for errors
+    const error = messages.find((m: any) => m.name === 'error');
+    if (error) {
+      throw new Error(error.message ?? 'describeQuery failed');
+    }
+
+    const paramDesc = messages.find(
+      (m: any) => m.name === 'parameterDescription',
+    );
+    const rowDesc = messages.find((m: any) => m.name === 'rowDescription');
+
+    // Clean up: CLOSE(Statement) + SYNC
+    const closePayload = Buffer.concat([
+      Buffer.from('S'),
+      Buffer.from(stmtName + '\0'),
+    ]);
+    const closeMsg = Buffer.concat([
+      wireMsg('C', closePayload),
+      wireMsg('S', Buffer.alloc(0)),
+    ]);
+    try {
+      await db.execProtocol(new Uint8Array(closeMsg));
+    } catch {
+      // Ignore — statement may not exist if PARSE failed
+    }
+
+    return {
+      params: paramDesc?.dataTypeIDs ?? [],
+      fields: rowDesc?.fields ?? [],
     };
   }
 
@@ -133,10 +249,14 @@ export class PGLiteAdapter implements DatabaseAdapter {
 }
 
 /**
- * Sanitize a SQL schema (potentially from pg_dump) for PGLite compatibility.
- * Strips SET commands, extension management, comments on extensions,
- * owner/ACL statements, and adds stubs for common extension functions.
+ * Build a single PostgreSQL wire protocol message: tag (1 byte) + int32 length + payload.
  */
+function wireMsg(tag: string, payload: Buffer): Buffer {
+  const len = Buffer.alloc(4);
+  len.writeInt32BE(4 + payload.length, 0);
+  return Buffer.concat([Buffer.from(tag), len, payload]);
+}
+
 /**
  * Sanitize a SQL schema (potentially from pg_dump) for PGLite compatibility.
  * Strips unsupported SET commands, extension management, owner/ACL statements,
