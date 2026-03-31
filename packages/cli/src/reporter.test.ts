@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { formatDiagnostics } from './reporter.js';
-import type { Diagnostic } from '@ts-sqlx/core/types.js';
+import type { Diagnostic } from '@bluedrop-learning-networks/ts-sqlx-core/types.js';
 
 function strip(s: string): string {
   return s.replace(/\x1b\[[0-9;]*m/g, '');

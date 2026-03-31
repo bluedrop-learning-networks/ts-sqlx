@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { compareTypes, generateTypeAnnotation } from '@ts-sqlx/core/typeComparator.js';
-import type { InferredColumn } from '@ts-sqlx/core/types.js';
+import { compareTypes, generateTypeAnnotation } from '@bluedrop-learning-networks/ts-sqlx-core/typeComparator.js';
+import type { InferredColumn } from '@bluedrop-learning-networks/ts-sqlx-core/types.js';
 
 describe('compareTypes', () => {
   it('accepts matching types', () => {

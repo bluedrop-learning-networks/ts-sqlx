@@ -1,10 +1,10 @@
 # ts-sqlx
 
-Compile-time SQL validation and type checking for TypeScript.
+Non-invasive compile-time SQL checking for TypeScript.
 
-Validates your SQL queries against your actual database schema at build time — catching syntax errors, unknown tables and columns, parameter type mismatches, and incorrect result set types before your code runs. Generates correct type annotations for query results and parameters via LSP code actions. Ships as a CLI (`ts-sqlx check`) and a language server for editor integration.
+ts-sqlx validates your SQL queries against your actual database schema at build time — no codegen, no special query syntax, no runtime overhead. It reads the TypeScript you already write, extracts SQL strings from your existing `pg` or `pg-promise` calls, and checks them. If a query has a syntax error, references a table that doesn't exist, or has a type annotation that doesn't match the schema, you find out before you ship.
 
-Inspired by Rust's [sqlx](https://github.com/launchbadge/sqlx), but fundamentally different because TypeScript has no procedural macros — instead, ts-sqlx works by analyzing your TypeScript source, extracting SQL query strings, and comparing inferred types against your declared types.
+Inspired by Rust's [sqlx](https://github.com/launchbadge/sqlx), adapted for TypeScript's constraints: no procedural macros, so ts-sqlx works by static analysis of your source instead. Ships as a CLI (`ts-sqlx check`) and a language server for real-time editor diagnostics.
 
 ## Supported libraries
 
@@ -43,7 +43,7 @@ For full fidelity, connect to a real PostgreSQL instance instead.
 Install:
 
 ```bash
-npm install -D @ts-sqlx/cli @ts-sqlx/core
+npm install -D @bluedrop-learning-networks/ts-sqlx-cli @bluedrop-learning-networks/ts-sqlx-core
 ```
 
 Create `ts-sqlx.toml` in your project root:
@@ -268,7 +268,7 @@ timestamptz = "dayjs#Dayjs"
 ## CLI
 
 ```bash
-npm install -D @ts-sqlx/cli @ts-sqlx/core
+npm install -D @bluedrop-learning-networks/ts-sqlx-cli @bluedrop-learning-networks/ts-sqlx-core
 ```
 
 ### Commands
@@ -288,10 +288,10 @@ Exit code is `1` if any errors are found, `0` otherwise.
 
 ## Editor integration
 
-The language server provides real-time diagnostics and code actions (generate/update type annotations). It ships as `ts-sqlx-lsp` in the `@ts-sqlx/language-server` package.
+The language server provides real-time diagnostics and code actions (generate/update type annotations). It ships as `ts-sqlx-lsp` in the `@bluedrop-learning-networks/ts-sqlx-language-server` package.
 
 ```bash
-npm install -D @ts-sqlx/language-server
+npm install -D @bluedrop-learning-networks/ts-sqlx-language-server
 ```
 
 ### VS Code / Cursor

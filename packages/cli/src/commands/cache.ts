@@ -1,6 +1,6 @@
 import { command, subcommands } from 'cmd-ts';
-import { TypeCache } from '@ts-sqlx/core/cache.js';
-import { resolveConfig } from '@ts-sqlx/core/config.js';
+import { TypeCache } from '@bluedrop-learning-networks/ts-sqlx-core/cache.js';
+import { resolveConfig } from '@bluedrop-learning-networks/ts-sqlx-core/config.js';
 import * as path from 'path';
 
 const statusCommand = command({

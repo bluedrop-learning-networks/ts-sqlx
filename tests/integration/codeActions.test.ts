@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { DiagnosticsEngine } from '@ts-sqlx/core/diagnostics.js';
-import { generateTypeAnnotation } from '@ts-sqlx/core/typeComparator.js';
-import { PGLiteAdapter } from '@ts-sqlx/core/adapters/database/pgliteAdapter.js';
-import { TsMorphAdapter } from '@ts-sqlx/core/adapters/typescript/tsMorphAdapter.js';
-import type { InferredColumn } from '@ts-sqlx/core/types.js';
-import { createAddTypeAnnotationAction, createUpdateTypeAnnotationAction } from '@ts-sqlx/language-server/codeActions.js';
+import { DiagnosticsEngine } from '@bluedrop-learning-networks/ts-sqlx-core/diagnostics.js';
+import { generateTypeAnnotation } from '@bluedrop-learning-networks/ts-sqlx-core/typeComparator.js';
+import { PGLiteAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/pgliteAdapter.js';
+import { TsMorphAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/typescript/tsMorphAdapter.js';
+import type { InferredColumn } from '@bluedrop-learning-networks/ts-sqlx-core/types.js';
+import { createAddTypeAnnotationAction, createUpdateTypeAnnotationAction } from '@bluedrop-learning-networks/ts-sqlx-language-server/codeActions.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';

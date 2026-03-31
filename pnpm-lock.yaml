@@ -17,7 +17,7 @@ importers:
 
   packages/cli:
     dependencies:
-      '@ts-sqlx/core':
+      '@bluedrop-learning-networks/ts-sqlx-core':
         specifier: workspace:*
         version: link:../core
       cmd-ts:
@@ -67,7 +67,7 @@ importers:
 
   packages/language-server:
     dependencies:
-      '@ts-sqlx/core':
+      '@bluedrop-learning-networks/ts-sqlx-core':
         specifier: workspace:*
         version: link:../core
       vscode-languageserver:
@@ -86,7 +86,7 @@ importers:
 
   packages/test-utils:
     dependencies:
-      '@ts-sqlx/core':
+      '@bluedrop-learning-networks/ts-sqlx-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -103,7 +103,7 @@ importers:
         specifier: ^9.0.1
         version: 9.0.1
     devDependencies:
-      '@ts-sqlx/language-server':
+      '@bluedrop-learning-networks/ts-sqlx-language-server':
         specifier: workspace:*
         version: link:../language-server
       '@types/vscode':

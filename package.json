@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r build",
+    "publish:packages": "pnpm build && pnpm -r --filter '@bluedrop-learning-networks/*' publish --no-git-checks",
     "test": "vitest",
     "test:run": "vitest run",
     "db:test:up": "docker compose -f docker-compose.test.yml up -d --wait",

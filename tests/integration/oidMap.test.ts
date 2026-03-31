@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { oidToTypeName, tsTypeFromPgType, isArrayOid } from '@ts-sqlx/core/adapters/database/oidMap.js';
+import { oidToTypeName, tsTypeFromPgType, isArrayOid } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/oidMap.js';
 
 describe('oidToTypeName', () => {
   it('maps common OIDs to type names', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { DbInferrer } from '@ts-sqlx/core/dbInferrer.js';
-import { PGLiteAdapter } from '@ts-sqlx/core/adapters/database/pgliteAdapter.js';
+import { DbInferrer } from '@bluedrop-learning-networks/ts-sqlx-core/dbInferrer.js';
+import { PGLiteAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/pgliteAdapter.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';

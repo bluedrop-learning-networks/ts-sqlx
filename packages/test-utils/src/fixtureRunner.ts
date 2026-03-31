@@ -1,4 +1,4 @@
-import type { Diagnostic, DiagnosticCode } from '@ts-sqlx/core/types.js';
+import type { Diagnostic, DiagnosticCode } from '@bluedrop-learning-networks/ts-sqlx-core/types.js';
 
 export interface FixtureExpectation {
   line: number;

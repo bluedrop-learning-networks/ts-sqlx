@@ -1,5 +1,5 @@
-import { PGLiteAdapter } from '@ts-sqlx/core/adapters/database/pgliteAdapter.js';
-import type { DatabaseAdapter } from '@ts-sqlx/core/adapters/database/types.js';
+import { PGLiteAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/pgliteAdapter.js';
+import type { DatabaseAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';

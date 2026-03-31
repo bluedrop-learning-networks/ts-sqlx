@@ -11,13 +11,13 @@ import {
   CodeActionKind,
 } from 'vscode-languageserver/node.js';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { DiagnosticsEngine } from '@ts-sqlx/core/diagnostics.js';
-import { createDatabaseAdapter } from '@ts-sqlx/core/adapters/database/adapterFactory.js';
-import { TsMorphAdapter } from '@ts-sqlx/core/adapters/typescript/tsMorphAdapter.js';
-import { resolveConfig, parseTypeOverrides } from '@ts-sqlx/core/config.js';
-import { perf } from '@ts-sqlx/core/perf.js';
-import { generateTypeAnnotation } from '@ts-sqlx/core';
-import type { Diagnostic, DiagnosticSeverity, AnalysisResult } from '@ts-sqlx/core/types.js';
+import { DiagnosticsEngine } from '@bluedrop-learning-networks/ts-sqlx-core/diagnostics.js';
+import { createDatabaseAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/adapterFactory.js';
+import { TsMorphAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/typescript/tsMorphAdapter.js';
+import { resolveConfig, parseTypeOverrides } from '@bluedrop-learning-networks/ts-sqlx-core/config.js';
+import { perf } from '@bluedrop-learning-networks/ts-sqlx-core/perf.js';
+import { generateTypeAnnotation } from '@bluedrop-learning-networks/ts-sqlx-core';
+import type { Diagnostic, DiagnosticSeverity, AnalysisResult } from '@bluedrop-learning-networks/ts-sqlx-core/types.js';
 import { createAddTypeAnnotationAction, createUpdateTypeAnnotationAction } from './codeActions.js';
 import * as fs from 'fs';
 import * as path from 'path';

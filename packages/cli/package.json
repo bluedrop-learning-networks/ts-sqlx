@@ -1,15 +1,23 @@
 {
-  "name": "@ts-sqlx/cli",
+  "name": "@bluedrop-learning-networks/ts-sqlx-cli",
   "version": "0.1.0",
   "type": "module",
   "bin": {
     "ts-sqlx": "dist/index.js"
   },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bluedrop-learning-networks/ts-sqlx.git",
+    "directory": "packages/cli"
+  },
   "scripts": {
     "build": "tsc"
   },
   "dependencies": {
-    "@ts-sqlx/core": "workspace:*",
+    "@bluedrop-learning-networks/ts-sqlx-core": "workspace:*",
     "cmd-ts": "^0.13.0",
     "glob": "^11.0.0",
     "picocolors": "^1.1.1"

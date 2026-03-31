@@ -1,8 +1,8 @@
 import { command, positional, flag, string, optional } from 'cmd-ts';
-import { DiagnosticsEngine } from '@ts-sqlx/core/diagnostics.js';
-import { createDatabaseAdapter } from '@ts-sqlx/core/adapters/database/adapterFactory.js';
-import { TsMorphAdapter } from '@ts-sqlx/core/adapters/typescript/tsMorphAdapter.js';
-import { resolveConfig, parseTypeOverrides } from '@ts-sqlx/core/config.js';
+import { DiagnosticsEngine } from '@bluedrop-learning-networks/ts-sqlx-core/diagnostics.js';
+import { createDatabaseAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/adapterFactory.js';
+import { TsMorphAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/typescript/tsMorphAdapter.js';
+import { resolveConfig, parseTypeOverrides } from '@bluedrop-learning-networks/ts-sqlx-core/config.js';
 import { glob } from 'glob';
 import * as fs from 'fs';
 import * as path from 'path';

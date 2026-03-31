@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TypeCache } from '@ts-sqlx/core/cache.js';
+import { TypeCache } from '@bluedrop-learning-networks/ts-sqlx-core/cache.js';
 
 describe('TypeCache', () => {
   let cache: TypeCache;

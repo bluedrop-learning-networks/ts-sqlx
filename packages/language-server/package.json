@@ -1,16 +1,24 @@
 {
-  "name": "@ts-sqlx/language-server",
+  "name": "@bluedrop-learning-networks/ts-sqlx-language-server",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "ts-sqlx-lsp": "dist/index.js"
   },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bluedrop-learning-networks/ts-sqlx.git",
+    "directory": "packages/language-server"
+  },
   "scripts": {
     "build": "tsc"
   },
   "dependencies": {
-    "@ts-sqlx/core": "workspace:*",
+    "@bluedrop-learning-networks/ts-sqlx-core": "workspace:*",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.0"
   },

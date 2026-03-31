@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseConfig, resolveConfig, parseTypeOverrides } from '@ts-sqlx/core/config.js';
+import { parseConfig, resolveConfig, parseTypeOverrides } from '@bluedrop-learning-networks/ts-sqlx-core/config.js';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 

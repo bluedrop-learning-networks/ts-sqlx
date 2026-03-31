@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractNullabilityHints } from '@ts-sqlx/core';
+import { extractNullabilityHints } from '@bluedrop-learning-networks/ts-sqlx-core';
 
 describe('extractNullabilityHints', () => {
   it('returns empty hints and unchanged SQL when no comment present', () => {

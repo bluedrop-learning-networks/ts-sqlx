@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractParams } from '@ts-sqlx/core/paramExtractor.js';
+import { extractParams } from '@bluedrop-learning-networks/ts-sqlx-core/paramExtractor.js';
 
 describe('extractParams', () => {
   describe('indexed parameters', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseFixtureExpectations } from '@ts-sqlx/test-utils/fixtureRunner.js';
+import { parseFixtureExpectations } from '@bluedrop-learning-networks/ts-sqlx-test-utils/fixtureRunner.js';
 
 describe('parseFixtureExpectations', () => {
   it('parses single @expect annotation', () => {

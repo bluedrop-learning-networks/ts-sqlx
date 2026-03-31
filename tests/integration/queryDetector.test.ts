@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { QueryDetector } from '@ts-sqlx/core/queryDetector.js';
-import { TsMorphAdapter } from '@ts-sqlx/core/adapters/typescript/tsMorphAdapter.js';
+import { QueryDetector } from '@bluedrop-learning-networks/ts-sqlx-core/queryDetector.js';
+import { TsMorphAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/typescript/tsMorphAdapter.js';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 

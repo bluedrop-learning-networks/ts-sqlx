@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PerfCollector } from '@ts-sqlx/core/perf.js';
+import { PerfCollector } from '@bluedrop-learning-networks/ts-sqlx-core/perf.js';
 
 describe('PerfCollector', () => {
   let collector: PerfCollector;

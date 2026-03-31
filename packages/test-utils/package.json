@@ -1,6 +1,7 @@
 {
-  "name": "@ts-sqlx/test-utils",
+  "name": "@bluedrop-learning-networks/ts-sqlx-test-utils",
   "version": "0.1.0",
+  "private": true,
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -8,7 +9,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@ts-sqlx/core": "workspace:*"
+    "@bluedrop-learning-networks/ts-sqlx-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

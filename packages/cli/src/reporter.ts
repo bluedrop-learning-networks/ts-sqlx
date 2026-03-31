@@ -1,7 +1,7 @@
 import pc from 'picocolors';
 import * as path from 'path';
 import * as fs from 'fs';
-import type { Diagnostic, DiagnosticSeverity } from '@ts-sqlx/core/types.js';
+import type { Diagnostic, DiagnosticSeverity } from '@bluedrop-learning-networks/ts-sqlx-core/types.js';
 
 export interface FileDiagnostic {
   filePath: string;

@@ -1,5 +1,5 @@
 {
-  "name": "@ts-sqlx/core",
+  "name": "@bluedrop-learning-networks/ts-sqlx-core",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -41,6 +41,14 @@
       "types": "./dist/perf.d.ts",
       "default": "./dist/perf.js"
     }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bluedrop-learning-networks/ts-sqlx.git",
+    "directory": "packages/core"
   },
   "scripts": {
     "build": "tsc"

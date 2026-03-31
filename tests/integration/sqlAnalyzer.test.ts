@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { parseSql, ensureModuleLoaded } from '@ts-sqlx/core/sqlAnalyzer.js';
+import { parseSql, ensureModuleLoaded } from '@bluedrop-learning-networks/ts-sqlx-core/sqlAnalyzer.js';
 
 describe('parseSql', () => {
   beforeAll(async () => {

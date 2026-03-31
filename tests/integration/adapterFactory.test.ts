@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { createDatabaseAdapter } from '@ts-sqlx/core/adapters/database/adapterFactory.js';
-import { PGLiteAdapter } from '@ts-sqlx/core/adapters/database/pgliteAdapter.js';
-import { PgAdapter } from '@ts-sqlx/core/adapters/database/pgAdapter.js';
-import type { TsSqlxConfig } from '@ts-sqlx/core/config.js';
+import { createDatabaseAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/adapterFactory.js';
+import { PGLiteAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/pgliteAdapter.js';
+import { PgAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/pgAdapter.js';
+import type { TsSqlxConfig } from '@bluedrop-learning-networks/ts-sqlx-core/config.js';
 
 function makeConfig(db: TsSqlxConfig['database']): TsSqlxConfig {
   return {

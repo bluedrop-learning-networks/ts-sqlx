@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createPgFixture, type PgFixture } from '@ts-sqlx/test-utils';
+import { createPgFixture, type PgFixture } from '@bluedrop-learning-networks/ts-sqlx-test-utils';
 
 describe('PgFixture', () => {
   let fixture: PgFixture;

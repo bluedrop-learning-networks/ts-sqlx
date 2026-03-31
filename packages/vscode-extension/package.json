@@ -36,7 +36,7 @@
     "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
-    "@ts-sqlx/language-server": "workspace:*",
+    "@bluedrop-learning-networks/ts-sqlx-language-server": "workspace:*",
     "@types/vscode": "^1.85.0",
     "@vercel/ncc": "^0.38.4",
     "@vscode/vsce": "^3.0.0",

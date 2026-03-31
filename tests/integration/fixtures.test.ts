@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { DiagnosticsEngine } from '@ts-sqlx/core/diagnostics.js';
-import { PGLiteAdapter } from '@ts-sqlx/core/adapters/database/pgliteAdapter.js';
-import { TsMorphAdapter } from '@ts-sqlx/core/adapters/typescript/tsMorphAdapter.js';
-import { parseFixtureExpectations, matchDiagnostics } from '@ts-sqlx/test-utils/fixtureRunner.js';
+import { DiagnosticsEngine } from '@bluedrop-learning-networks/ts-sqlx-core/diagnostics.js';
+import { PGLiteAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/pgliteAdapter.js';
+import { TsMorphAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/typescript/tsMorphAdapter.js';
+import { parseFixtureExpectations, matchDiagnostics } from '@bluedrop-learning-networks/ts-sqlx-test-utils/fixtureRunner.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
