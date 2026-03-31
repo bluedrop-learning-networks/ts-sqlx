@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g. 0.2.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+          scope: "@bluedrop-learning-networks"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set version
+        run: |
+          pnpm -r --filter '@bluedrop-learning-networks/*' exec npm version ${{ inputs.version }} --no-git-tag-version
+          # Also update the vscode extension version (not in the scoped filter)
+          cd packages/vscode-extension && npm version ${{ inputs.version }} --no-git-tag-version
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run tests
+        run: pnpm vitest run --exclude '**/pgAdapter.test.ts' --exclude '**/pgFixture.test.ts' --exclude '**/pgNullability.test.ts' --exclude '**/adapterFactory.test.ts' --exclude '**/joinNullability.test.ts'
+
+      - name: Publish to GitHub npm registry
+        run: pnpm -r --filter '@bluedrop-learning-networks/*' publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package VS Code extension
+        run: cd packages/vscode-extension && pnpm exec vsce package --no-dependencies
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "release: v${{ inputs.version }}"
+          git tag "v${{ inputs.version }}"
+          git push origin main --tags
+
+      - name: Create GitHub release
+        run: |
+          gh release create "v${{ inputs.version }}" \
+            packages/vscode-extension/ts-sqlx-${{ inputs.version }}.vsix \
+            --title "v${{ inputs.version }}" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
