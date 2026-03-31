@@ -1,7 +1,13 @@
 import * as esbuild from 'esbuild';
-import { execSync } from 'child_process';
+import { copyFileSync, mkdirSync, readdirSync } from 'fs';
+import { createRequire } from 'module';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
-// Extension client: esbuild (must externalize vscode)
+const require = createRequire(import.meta.url);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Extension client: esbuild CJS (must externalize vscode)
 await esbuild.build({
   entryPoints: ['src/extension.ts'],
   outfile: 'dist/extension.js',
@@ -12,30 +18,40 @@ await esbuild.build({
   external: ['vscode'],
 });
 
-// Language server: ncc (bundles all deps into a self-contained directory)
-execSync(
-  'ncc build ../language-server/dist/index.js -o dist/server --no-source-map-register',
-  { stdio: 'inherit' },
-);
+// Language server: esbuild ESM (bundles all deps)
+// Must be ESM so import.meta.url works for PGLite WASM asset resolution
+await esbuild.build({
+  entryPoints: ['../language-server/dist/index.js'],
+  outfile: 'dist/server.mjs',
+  bundle: true,
+  format: 'esm',
+  platform: 'node',
+  sourcemap: true,
+  banner: {
+    // Provide __filename/__dirname for bundled CJS deps (ts-morph)
+    js: `import { fileURLToPath as __esbuild_fileURLToPath } from 'url';
+import { dirname as __esbuild_dirname } from 'path';
+import { createRequire as __esbuild_createRequire } from 'module';
+const __filename = __esbuild_fileURLToPath(import.meta.url);
+const __dirname = __esbuild_dirname(__filename);
+const require = __esbuild_createRequire(import.meta.url);`,
+  },
+  external: [],
+});
 
-// ncc outputs ESM but bundled deps (ts-morph) use __filename/__dirname which
-// don't exist in ESM scope. Prepend a shim that derives them from import.meta.url.
-import { readFileSync, writeFileSync, copyFileSync } from 'fs';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-let serverJs = readFileSync('dist/server/index.js', 'utf8');
-// Strip shebang — server is spawned by the extension, not run directly
-serverJs = serverJs.replace(/^#!.*\n/, '');
-const shim = `import { fileURLToPath as __esm_fileURLToPath } from 'url';
-import { dirname as __esm_dirname } from 'path';
-const __filename = __esm_fileURLToPath(import.meta.url);
-const __dirname = __esm_dirname(__filename);
-`;
-writeFileSync('dist/server/index.js', shim + serverJs);
-writeFileSync('dist/server/package.json', '{"type":"module"}\n');
+// Copy WASM/data assets that esbuild can't inline
+mkdirSync(join(__dirname, 'dist'), { recursive: true });
 
-// Copy WASM assets that ncc doesn't detect — resolve from core package
-const coreRequire = createRequire(new URL('../core/package.json', import.meta.url));
-const libpgQueryEntry = coreRequire.resolve('libpg-query');
-const libpgQueryPkg = libpgQueryEntry.replace(/[/\\][^/\\]+$/, '');
-copyFileSync(`${libpgQueryPkg}/libpg-query.wasm`, 'dist/server/libpg-query.wasm');
+// libpg-query WASM
+const coreRequire = createRequire(join(__dirname, '..', 'core', 'package.json'));
+const libpgDir = dirname(coreRequire.resolve('libpg-query'));
+copyFileSync(join(libpgDir, 'libpg-query.wasm'), join(__dirname, 'dist', 'libpg-query.wasm'));
+
+// PGLite WASM + data
+const pgliteEntry = coreRequire.resolve('@electric-sql/pglite');
+const pgliteDir = dirname(pgliteEntry);
+for (const file of readdirSync(pgliteDir)) {
+  if (file.endsWith('.wasm') || file.endsWith('.data') || file.endsWith('.tar.gz')) {
+    copyFileSync(join(pgliteDir, file), join(__dirname, 'dist', file));
+  }
+}

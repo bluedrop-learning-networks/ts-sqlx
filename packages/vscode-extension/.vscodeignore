@@ -1,8 +1,7 @@
 **/*
 !dist/extension.js
-!dist/server/index.js
-!dist/server/package.json
-!dist/server/*.js
-!dist/server/*.wasm
-!dist/server/*.data
+!dist/server.mjs
+!dist/*.wasm
+!dist/*.data
+!dist/*.tar.gz
 !package.json

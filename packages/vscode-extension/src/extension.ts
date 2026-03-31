@@ -10,9 +10,7 @@ import {
 let client: LanguageClient | undefined;
 
 export function activate(context: ExtensionContext): void {
-  const serverModule = context.asAbsolutePath(
-    path.join('dist', 'server', 'index.js'),
-  );
+  const serverModule = context.asAbsolutePath(path.join('dist', 'server.mjs'));
 
   const serverOptions: ServerOptions = {
     run: { module: serverModule, transport: TransportKind.stdio },
