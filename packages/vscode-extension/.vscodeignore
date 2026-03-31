@@ -1,0 +1,8 @@
+**/*
+!dist/extension.js
+!dist/server/index.js
+!dist/server/package.json
+!dist/server/*.js
+!dist/server/*.wasm
+!dist/server/*.data
+!package.json

@@ -1,6 +1,7 @@
 node_modules/
 dist/
 *.tsbuildinfo
+*.vsix
 
 # Compiled output in source directories
 packages/*/src/**/*.js
