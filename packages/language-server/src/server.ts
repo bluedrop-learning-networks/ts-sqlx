@@ -56,6 +56,12 @@ connection.onInitialize(async (params: InitializeParams): Promise<InitializeResu
 
     const typeOverrides = parseTypeOverrides(config.types);
     engine = new DiagnosticsEngine(dbAdapter, tsAdapter, typeOverrides);
+
+    try {
+      await engine.init();
+    } catch (e) {
+      connection.console.error(`Warning: enum discovery failed: ${(e as Error).message}`);
+    }
   }
 
   return {
