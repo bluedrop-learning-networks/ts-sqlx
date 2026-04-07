@@ -57,3 +57,32 @@ describe('queryEnumTypes', () => {
     expect(result.size).toBe(0);
   });
 });
+
+import { PgAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/pgAdapter.js';
+
+describe('PgAdapter.resolveOid', () => {
+  it('resolves built-in OIDs to their type name', () => {
+    const adapter = new PgAdapter('postgresql://fake');
+    const resolve = (adapter as any).resolveOid.bind(adapter);
+    expect(resolve(23)).toEqual({ name: 'int4', isArray: false });
+    expect(resolve(1007)).toEqual({ name: 'int4', isArray: true });
+  });
+
+  it('resolves unknown OIDs to unknown', () => {
+    const adapter = new PgAdapter('postgresql://fake');
+    const resolve = (adapter as any).resolveOid.bind(adapter);
+    expect(resolve(99999)).toEqual({ name: 'unknown', isArray: false });
+  });
+
+  it('resolves enum OIDs after discoverEnums', async () => {
+    const adapter = new PgAdapter('postgresql://fake');
+    const enumInfo = {
+      oid: 16400, arrayOid: 16405, name: 'status_enum',
+      schema: 'public', labels: ['draft', 'published', 'archived'],
+    };
+    (adapter as any).enumsByOid = new Map([[16400, enumInfo], [16405, enumInfo]]);
+    const resolve = (adapter as any).resolveOid.bind(adapter);
+    expect(resolve(16400)).toEqual({ name: 'status_enum', isArray: false });
+    expect(resolve(16405)).toEqual({ name: 'status_enum', isArray: true });
+  });
+});
