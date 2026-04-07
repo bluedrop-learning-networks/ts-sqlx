@@ -25,6 +25,10 @@
       "types": "./dist/queryDetector.d.ts",
       "default": "./dist/queryDetector.js"
     },
+    "./dbInferrer.js": {
+      "types": "./dist/dbInferrer.d.ts",
+      "default": "./dist/dbInferrer.js"
+    },
     "./diagnostics.js": {
       "types": "./dist/diagnostics.d.ts",
       "default": "./dist/diagnostics.js"

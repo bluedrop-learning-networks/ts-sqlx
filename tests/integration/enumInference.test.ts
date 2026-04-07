@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { queryEnumTypes } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/shared.js';
 import type { EnumTypeInfo } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/types.js';
+import { DbInferrer } from '@bluedrop-learning-networks/ts-sqlx-core/dbInferrer.js';
+import type { DatabaseAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/types.js';
+import { parseTypeOverrides } from '@bluedrop-learning-networks/ts-sqlx-core/config.js';
 
 describe('queryEnumTypes', () => {
   it('parses enum rows into Map<string, EnumTypeInfo>', async () => {
@@ -84,5 +87,58 @@ describe('PgAdapter.resolveOid', () => {
     const resolve = (adapter as any).resolveOid.bind(adapter);
     expect(resolve(16400)).toEqual({ name: 'status_enum', isArray: false });
     expect(resolve(16405)).toEqual({ name: 'status_enum', isArray: true });
+  });
+});
+
+describe('DbInferrer enum resolution', () => {
+  function makeInferrer(enumMap: Map<string, EnumTypeInfo>, typeOverrides?: Map<string, any>) {
+    const mockAdapter = {} as DatabaseAdapter;
+    const inferrer = new DbInferrer(mockAdapter, typeOverrides);
+    (inferrer as any).enumMap = enumMap;
+    return inferrer;
+  }
+
+  const enumMap = new Map([
+    ['status_enum', {
+      oid: 16400, arrayOid: 16405, name: 'status_enum',
+      schema: 'public', labels: ['draft', 'published', 'archived'],
+    }],
+  ]);
+
+  it('resolves enum type to string union', () => {
+    const inferrer = makeInferrer(enumMap);
+    const result = (inferrer as any).resolveType('status_enum', false);
+    expect(result.tsType).toBe("'draft' | 'published' | 'archived'");
+  });
+
+  it('resolves array enum type to union array', () => {
+    const inferrer = makeInferrer(enumMap);
+    const result = (inferrer as any).resolveType('status_enum', true);
+    expect(result.tsType).toBe("('draft' | 'published' | 'archived')[]");
+  });
+
+  it('manual override wins over enum', () => {
+    const overrides = parseTypeOverrides({ status_enum: 'string' });
+    const inferrer = makeInferrer(enumMap, overrides);
+    const result = (inferrer as any).resolveType('status_enum', false);
+    expect(result.tsType).toBe('string');
+  });
+
+  it('falls back to PG_TO_TS for non-enum types', () => {
+    const inferrer = makeInferrer(enumMap);
+    const result = (inferrer as any).resolveType('text', false);
+    expect(result.tsType).toBe('string');
+  });
+
+  it('escapes single quotes in enum labels', () => {
+    const mapWithQuotes = new Map([
+      ['quirky_enum', {
+        oid: 16500, arrayOid: 16505, name: 'quirky_enum',
+        schema: 'public', labels: ["it's", "they're"],
+      }],
+    ]);
+    const inferrer = makeInferrer(mapWithQuotes);
+    const result = (inferrer as any).resolveType('quirky_enum', false);
+    expect(result.tsType).toBe("'it\\'s' | 'they\\'re'");
   });
 });
