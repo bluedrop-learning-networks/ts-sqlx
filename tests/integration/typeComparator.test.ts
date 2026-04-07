@@ -77,6 +77,50 @@ describe('compareTypes', () => {
     expect(result.match).toBe(false);
     expect(result.mismatches.some(m => m.includes('nullable'))).toBe(true);
   });
+
+  it('accepts nullable enum union matching declared type', () => {
+    const inferred: InferredColumn[] = [
+      { name: 'status', pgType: 'status_enum', tsType: "'draft' | 'published' | 'archived'", nullable: true },
+    ];
+    const declared = [
+      { name: 'status', type: "'draft' | 'published' | 'archived' | null", optional: false },
+    ];
+    const result = compareTypes(inferred, declared);
+    expect(result.match).toBe(true);
+  });
+
+  it('rejects string when enum union is inferred', () => {
+    const inferred: InferredColumn[] = [
+      { name: 'status', pgType: 'status_enum', tsType: "'draft' | 'published' | 'archived'", nullable: false },
+    ];
+    const declared = [
+      { name: 'status', type: 'string', optional: false },
+    ];
+    const result = compareTypes(inferred, declared);
+    expect(result.match).toBe(false);
+  });
+
+  it('rejects string | null when nullable enum union is inferred', () => {
+    const inferred: InferredColumn[] = [
+      { name: 'status', pgType: 'status_enum', tsType: "'draft' | 'published' | 'archived'", nullable: true },
+    ];
+    const declared = [
+      { name: 'status', type: 'string | null', optional: false },
+    ];
+    const result = compareTypes(inferred, declared);
+    expect(result.match).toBe(false);
+  });
+
+  it('accepts non-nullable enum union', () => {
+    const inferred: InferredColumn[] = [
+      { name: 'status', pgType: 'status_enum', tsType: "'draft' | 'published' | 'archived'", nullable: false },
+    ];
+    const declared = [
+      { name: 'status', type: "'draft' | 'published' | 'archived'", optional: false },
+    ];
+    const result = compareTypes(inferred, declared);
+    expect(result.match).toBe(true);
+  });
 });
 
 describe('generateTypeAnnotation', () => {
