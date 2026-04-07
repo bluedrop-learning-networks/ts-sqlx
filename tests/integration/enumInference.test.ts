@@ -142,3 +142,57 @@ describe('DbInferrer enum resolution', () => {
     expect(result.tsType).toBe("'it\\'s' | 'they\\'re'");
   });
 });
+
+import { beforeAll, afterAll } from 'vitest';
+import { createPGLiteFixture } from '@bluedrop-learning-networks/ts-sqlx-test-utils';
+import type { PGLiteFixture } from '@bluedrop-learning-networks/ts-sqlx-test-utils';
+
+describe('enum inference integration', () => {
+  let fixture: PGLiteFixture;
+  let inferrer: DbInferrer;
+
+  beforeAll(async () => {
+    fixture = await createPGLiteFixture();
+    await fixture.setup();
+    inferrer = new DbInferrer(fixture.adapter);
+    await inferrer.init();
+  }, 30_000);
+
+  afterAll(async () => {
+    await fixture.teardown();
+  });
+
+  it('infers status_enum as string union from type_showcase', async () => {
+    const result = await inferrer.infer('SELECT status FROM type_showcase');
+    expect(result.columns).toHaveLength(1);
+    expect(result.columns[0].tsType).toBe("'draft' | 'published' | 'archived'");
+  });
+
+  it('infers status_enum as string union from orders', async () => {
+    const result = await inferrer.infer('SELECT status FROM orders');
+    expect(result.columns).toHaveLength(1);
+    expect(result.columns[0].tsType).toBe("'draft' | 'published' | 'archived'");
+  });
+
+  it('still resolves built-in types correctly alongside enums', async () => {
+    const result = await inferrer.infer('SELECT id, status FROM orders');
+    expect(result.columns).toHaveLength(2);
+    expect(result.columns[0].tsType).toBe('number');
+    expect(result.columns[1].tsType).toBe("'draft' | 'published' | 'archived'");
+  });
+
+  it('resolves enum used as parameter type', async () => {
+    const result = await inferrer.infer('SELECT id FROM orders WHERE status = $1');
+    expect(result.params).toHaveLength(1);
+    expect(result.params[0].pgType).toBe('status_enum');
+  });
+
+  it('infers nullable enum column correctly', async () => {
+    const result = await inferrer.infer(
+      'SELECT CASE WHEN id > 0 THEN status ELSE NULL END AS maybe_status FROM orders',
+    );
+    expect(result.columns).toHaveLength(1);
+    expect(result.columns[0].tsType).toBe("'draft' | 'published' | 'archived'");
+    expect(result.columns[0].nullable).toBe(true);
+  });
+});
