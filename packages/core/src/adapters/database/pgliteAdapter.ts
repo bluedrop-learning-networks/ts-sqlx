@@ -3,12 +3,14 @@ import type {
   DatabaseAdapter,
   QueryTypeInfo,
   CompositeField,
+  EnumTypeInfo,
 } from './types.js';
 import { oidToTypeName, isArrayOid, arrayElementTypeName } from './oidMap.js';
-import { queryEnumValues, queryCompositeFields, buildNullabilityMap } from './shared.js';
+import { queryEnumValues, queryCompositeFields, buildNullabilityMap, queryEnumTypes } from './shared.js';
 
 export class PGLiteAdapter implements DatabaseAdapter {
   private db: PGlite | null = null;
+  private enumsByOid: Map<number, EnumTypeInfo> = new Map();
 
   private constructor() {}
 
@@ -76,25 +78,15 @@ export class PGLiteAdapter implements DatabaseAdapter {
     const result = await this.db.describeQuery(sql);
 
     const params = (result.queryParams ?? []).map((p) => {
-      const isArr = isArrayOid(p.dataTypeID);
-      const typeName = oidToTypeName(p.dataTypeID);
-      return {
-        oid: p.dataTypeID,
-        name: isArr ? arrayElementTypeName(typeName) : typeName,
-        isArray: isArr,
-      };
+      const { name, isArray } = this.resolveOid(p.dataTypeID);
+      return { oid: p.dataTypeID, name, isArray };
     });
 
     const baseColumns = (result.resultFields ?? []).map((f) => {
-      const isArr = isArrayOid(f.dataTypeID);
-      const typeName = oidToTypeName(f.dataTypeID);
+      const { name, isArray } = this.resolveOid(f.dataTypeID);
       return {
         name: f.name,
-        type: {
-          oid: f.dataTypeID,
-          name: isArr ? arrayElementTypeName(typeName) : typeName,
-          isArray: isArr,
-        },
+        type: { oid: f.dataTypeID, name, isArray },
         nullable: true,
       };
     });
@@ -203,6 +195,35 @@ export class PGLiteAdapter implements DatabaseAdapter {
   async getCompositeFields(typeName: string): Promise<CompositeField[]> {
     if (!this.db) throw new Error('Not connected');
     return queryCompositeFields((sql, params) => this.db!.query(sql, params), typeName);
+  }
+
+  async discoverEnums(): Promise<Map<string, EnumTypeInfo>> {
+    if (!this.db) throw new Error('Not connected');
+    const enumMap = await queryEnumTypes(
+      (sql, params) => this.db!.query(sql, params),
+    );
+    this.enumsByOid = new Map();
+    for (const info of enumMap.values()) {
+      this.enumsByOid.set(info.oid, info);
+      this.enumsByOid.set(info.arrayOid, info);
+    }
+    return enumMap;
+  }
+
+  private resolveOid(oid: number): { name: string; isArray: boolean } {
+    const builtinName = oidToTypeName(oid);
+    if (builtinName !== 'unknown') {
+      return {
+        name: isArrayOid(oid) ? arrayElementTypeName(builtinName) : builtinName,
+        isArray: isArrayOid(oid),
+      };
+    }
+    const enumInfo = this.enumsByOid.get(oid);
+    if (enumInfo) {
+      const isArray = oid === enumInfo.arrayOid;
+      return { name: enumInfo.name, isArray };
+    }
+    return { name: 'unknown', isArray: false };
   }
 }
 

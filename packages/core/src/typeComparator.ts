@@ -64,9 +64,10 @@ function isTypeCompatible(
   if (normalizedInferred === normalizedDeclared) return true;
 
   if (nullable) {
-    const declaredParts = normalizedDeclared.split('|').map((s) => s.trim());
-    const baseType = normalizeType(inferred.replace('| null', '').trim());
-    return declaredParts.includes(baseType) && declaredParts.includes('null');
+    const inferredParts = normalizeType(inferred.replace(/\| null/g, '').trim());
+    const declaredParts = normalizeType(declared.replace(/\| null/g, '').trim());
+    const declaredHasNull = typeIncludesNull(declared);
+    return inferredParts === declaredParts && declaredHasNull;
   }
 
   return false;
@@ -79,7 +80,7 @@ function typeIncludesNull(typeStr: string): boolean {
 function normalizeType(t: string): string {
   return t
     .split('|')
-    .map((s) => s.trim())
+    .map((s) => s.trim().replace(/^"(.*)"$/, "'$1'"))
     .sort()
     .join(' | ');
 }

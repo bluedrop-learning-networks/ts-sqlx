@@ -23,6 +23,12 @@ export class DiagnosticsEngine {
     this.inferrer = dbAdapter ? new DbInferrer(dbAdapter, typeOverrides) : null;
   }
 
+  async init(): Promise<void> {
+    if (this.inferrer) {
+      await this.inferrer.init();
+    }
+  }
+
   async analyze(filePath: string): Promise<Diagnostic[]> {
     const result = await this.analyzeWithContext(filePath);
     return result.diagnostics;

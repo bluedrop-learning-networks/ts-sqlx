@@ -20,6 +20,14 @@ export interface CompositeField {
   type: PgTypeInfo;
 }
 
+export interface EnumTypeInfo {
+  oid: number;
+  arrayOid: number;
+  name: string;
+  schema: string;
+  labels: string[];
+}
+
 export interface DatabaseAdapter {
   connect(): Promise<void>;
   disconnect(): Promise<void>;
@@ -28,4 +36,5 @@ export interface DatabaseAdapter {
   describeQuery(sql: string): Promise<QueryTypeInfo>;
   getEnumValues(typeName: string): Promise<string[]>;
   getCompositeFields(typeName: string): Promise<CompositeField[]>;
+  discoverEnums(): Promise<Map<string, EnumTypeInfo>>;
 }

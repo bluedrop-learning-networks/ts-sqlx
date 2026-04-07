@@ -44,6 +44,12 @@ export const checkCommand = command({
     const typeOverrides = parseTypeOverrides(config.types);
     const engine = new DiagnosticsEngine(dbAdapter, tsAdapter, typeOverrides);
 
+    try {
+      await engine.init();
+    } catch (e) {
+      console.error(`Warning: enum discovery failed: ${(e as Error).message}`);
+    }
+
     const patterns = pattern ? [pattern] : config.paths.include;
     const files = await glob(patterns, {
       cwd,

@@ -5,9 +5,10 @@ import type {
   PgTypeInfo,
   ColumnInfo,
   CompositeField,
+  EnumTypeInfo,
 } from './types.js';
 import { oidToTypeName, isArrayOid, arrayElementTypeName } from './oidMap.js';
-import { queryEnumValues, queryCompositeFields, buildNullabilityMap } from './shared.js';
+import { queryEnumValues, queryCompositeFields, buildNullabilityMap, queryEnumTypes } from './shared.js';
 
 const { Pool } = pg;
 
@@ -145,6 +146,7 @@ export class PgAdapter implements DatabaseAdapter {
   private static stmtCounter = 0;
   private pool: pg.Pool;
   private connected = false;
+  private enumsByOid: Map<number, EnumTypeInfo> = new Map();
 
   constructor(connectionString: string) {
     this.pool = new Pool({ connectionString });
@@ -169,6 +171,22 @@ export class PgAdapter implements DatabaseAdapter {
     await this.pool.query(sql);
   }
 
+  private resolveOid(oid: number): { name: string; isArray: boolean } {
+    const builtinName = oidToTypeName(oid);
+    if (builtinName !== 'unknown') {
+      return {
+        name: isArrayOid(oid) ? arrayElementTypeName(builtinName) : builtinName,
+        isArray: isArrayOid(oid),
+      };
+    }
+    const enumInfo = this.enumsByOid.get(oid);
+    if (enumInfo) {
+      const isArray = oid === enumInfo.arrayOid;
+      return { name: enumInfo.name, isArray };
+    }
+    return { name: 'unknown', isArray: false };
+  }
+
   async describeQuery(sql: string): Promise<QueryTypeInfo> {
     if (!this.connected) throw new Error('Not connected');
 
@@ -184,13 +202,8 @@ export class PgAdapter implements DatabaseAdapter {
 
       // Map parameter OIDs to PgTypeInfo
       const params: PgTypeInfo[] = desc.parameterOIDs.map((oid) => {
-        const typeName = oidToTypeName(oid);
-        const isArr = isArrayOid(oid);
-        return {
-          oid,
-          name: isArr ? arrayElementTypeName(typeName) : typeName,
-          isArray: isArr,
-        };
+        const { name, isArray } = this.resolveOid(oid);
+        return { oid, name, isArray };
       });
 
       // Look up nullability from pg_attribute in a single batched query.
@@ -205,19 +218,14 @@ export class PgAdapter implements DatabaseAdapter {
       );
 
       const columns: ColumnInfo[] = desc.fields.map((f) => {
-        const isArr = isArrayOid(f.dataTypeID);
-        const typeName = oidToTypeName(f.dataTypeID);
+        const { name, isArray } = this.resolveOid(f.dataTypeID);
         const nullable = (f.tableID && f.columnID)
           ? nullabilityMap.get(`${f.tableID}:${f.columnID}`) ?? true
           : true;
 
         return {
           name: f.name,
-          type: {
-            oid: f.dataTypeID,
-            name: isArr ? arrayElementTypeName(typeName) : typeName,
-            isArray: isArr,
-          },
+          type: { oid: f.dataTypeID, name, isArray },
           nullable,
         };
       });
@@ -242,5 +250,18 @@ export class PgAdapter implements DatabaseAdapter {
   async getCompositeFields(typeName: string): Promise<CompositeField[]> {
     if (!this.connected) throw new Error('Not connected');
     return queryCompositeFields((sql, params) => this.pool.query(sql, params), typeName);
+  }
+
+  async discoverEnums(): Promise<Map<string, EnumTypeInfo>> {
+    if (!this.connected) throw new Error('Not connected');
+    const enumMap = await queryEnumTypes(
+      (sql, params) => this.pool.query(sql, params),
+    );
+    this.enumsByOid = new Map();
+    for (const info of enumMap.values()) {
+      this.enumsByOid.set(info.oid, info);
+      this.enumsByOid.set(info.arrayOid, info);
+    }
+    return enumMap;
   }
 }

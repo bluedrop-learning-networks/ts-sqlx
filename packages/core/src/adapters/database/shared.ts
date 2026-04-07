@@ -1,4 +1,4 @@
-import type { CompositeField } from './types.js';
+import type { CompositeField, EnumTypeInfo } from './types.js';
 import { oidToTypeName, isArrayOid } from './oidMap.js';
 
 /**
@@ -68,4 +68,35 @@ export async function buildNullabilityMap(
     }
   }
   return nullabilityMap;
+}
+
+export async function queryEnumTypes(
+  queryFn: QueryFn,
+): Promise<Map<string, EnumTypeInfo>> {
+  const result = await queryFn<{
+    oid: number;
+    typname: string;
+    typarray: number;
+    nspname: string;
+    labels: string[];
+  }>(
+    `SELECT t.oid, t.typname, t.typarray, n.nspname,
+            array_agg(e.enumlabel ORDER BY e.enumsortorder) AS labels
+     FROM pg_type t
+     JOIN pg_enum e ON e.enumtypid = t.oid
+     JOIN pg_namespace n ON t.typnamespace = n.oid
+     GROUP BY t.oid, t.typname, t.typarray, n.nspname`,
+  );
+
+  const map = new Map<string, EnumTypeInfo>();
+  for (const row of result.rows) {
+    map.set(row.typname, {
+      oid: row.oid,
+      arrayOid: row.typarray,
+      name: row.typname,
+      schema: row.nspname,
+      labels: row.labels,
+    });
+  }
+  return map;
 }
