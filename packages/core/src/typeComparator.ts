@@ -80,7 +80,7 @@ function typeIncludesNull(typeStr: string): boolean {
 function normalizeType(t: string): string {
   return t
     .split('|')
-    .map((s) => s.trim())
+    .map((s) => s.trim().replace(/^"(.*)"$/, "'$1'"))
     .sort()
     .join(' | ');
 }

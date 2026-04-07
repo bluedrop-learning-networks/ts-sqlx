@@ -111,6 +111,17 @@ describe('compareTypes', () => {
     expect(result.match).toBe(false);
   });
 
+  it('treats single-quoted and double-quoted string literals as equivalent', () => {
+    const inferred: InferredColumn[] = [
+      { name: 'success', pgType: 'success_enum', tsType: "'PASSED' | 'FAILED'", nullable: true },
+    ];
+    const declared = [
+      { name: 'success', type: '"PASSED" | "FAILED" | null', optional: false },
+    ];
+    const result = compareTypes(inferred, declared);
+    expect(result.match).toBe(true);
+  });
+
   it('accepts non-nullable enum union', () => {
     const inferred: InferredColumn[] = [
       { name: 'status', pgType: 'status_enum', tsType: "'draft' | 'published' | 'archived'", nullable: false },
