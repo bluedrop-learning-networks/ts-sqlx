@@ -3,9 +3,10 @@ import type {
   DatabaseAdapter,
   QueryTypeInfo,
   CompositeField,
+  EnumTypeInfo,
 } from './types.js';
 import { oidToTypeName, isArrayOid, arrayElementTypeName } from './oidMap.js';
-import { queryEnumValues, queryCompositeFields, buildNullabilityMap } from './shared.js';
+import { queryEnumValues, queryCompositeFields, buildNullabilityMap, queryEnumTypes } from './shared.js';
 
 export class PGLiteAdapter implements DatabaseAdapter {
   private db: PGlite | null = null;
@@ -203,6 +204,11 @@ export class PGLiteAdapter implements DatabaseAdapter {
   async getCompositeFields(typeName: string): Promise<CompositeField[]> {
     if (!this.db) throw new Error('Not connected');
     return queryCompositeFields((sql, params) => this.db!.query(sql, params), typeName);
+  }
+
+  async discoverEnums(): Promise<Map<string, EnumTypeInfo>> {
+    if (!this.db) throw new Error('Not connected');
+    return queryEnumTypes((sql, params) => this.db!.query(sql, params));
   }
 }
 

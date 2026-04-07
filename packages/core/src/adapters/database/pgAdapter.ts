@@ -5,9 +5,10 @@ import type {
   PgTypeInfo,
   ColumnInfo,
   CompositeField,
+  EnumTypeInfo,
 } from './types.js';
 import { oidToTypeName, isArrayOid, arrayElementTypeName } from './oidMap.js';
-import { queryEnumValues, queryCompositeFields, buildNullabilityMap } from './shared.js';
+import { queryEnumValues, queryCompositeFields, buildNullabilityMap, queryEnumTypes } from './shared.js';
 
 const { Pool } = pg;
 
@@ -242,5 +243,10 @@ export class PgAdapter implements DatabaseAdapter {
   async getCompositeFields(typeName: string): Promise<CompositeField[]> {
     if (!this.connected) throw new Error('Not connected');
     return queryCompositeFields((sql, params) => this.pool.query(sql, params), typeName);
+  }
+
+  async discoverEnums(): Promise<Map<string, EnumTypeInfo>> {
+    if (!this.connected) throw new Error('Not connected');
+    return queryEnumTypes((sql, params) => this.pool.query(sql, params));
   }
 }
