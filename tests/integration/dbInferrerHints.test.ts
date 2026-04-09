@@ -68,6 +68,31 @@ describe('DbInferrer with nullability hints', () => {
     expect(col.nullable).toBe(false);
   });
 
+  it('matches hints with exact casing for quoted column aliases', async () => {
+    const hints = new Map<string, NullabilityHint>([
+      ['userName', 'not-null'],
+    ]);
+    const result = await inferrer.infer(
+      'SELECT name AS "userName" FROM users',
+      hints,
+    );
+    const col = result.columns.find((c) => c.name === 'userName')!;
+    expect(col.nullable).toBe(false);
+  });
+
+  it('does not match hint when casing differs from column alias', async () => {
+    const hints = new Map<string, NullabilityHint>([
+      ['username', 'not-null'],
+    ]);
+    const result = await inferrer.infer(
+      'SELECT name AS "userName" FROM users',
+      hints,
+    );
+    const col = result.columns.find((c) => c.name === 'userName')!;
+    // hint is 'username' but column is 'userName' — no match, keeps inferred nullability
+    expect(col.nullable).toBe(true);
+  });
+
   it('works with no hints (backward compatible)', async () => {
     const result = await inferrer.infer('SELECT id, email FROM users');
     expect(result.columns).toHaveLength(2);

@@ -21,8 +21,9 @@ export function extractNullabilityHints(sql: string): HintExtractionResult {
     const hint = m[1] as NullabilityHint;
     const names = m[2]
       .split(',')
-      .map((n) => n.trim().toLowerCase())
-      .filter((n) => n.length > 0 && /^[a-z_]\w*$/.test(n));
+      .map((n) => n.trim())
+      .map((n) => (n.startsWith('"') && n.endsWith('"') ? n.slice(1, -1) : n))
+      .filter((n) => n.length > 0 && /^[a-zA-Z_]\w*$/.test(n));
     for (const name of names) {
       hints.set(name, hint);
     }

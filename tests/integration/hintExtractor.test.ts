@@ -69,12 +69,12 @@ describe('extractNullabilityHints', () => {
     expect(result.cleanedSql).toBe('SELECT id, email, name FROM users');
   });
 
-  it('lowercases column names to match PG identifier folding', () => {
+  it('preserves column name casing for case-sensitive matching', () => {
     const sql = '/* @not-null Name, EMAIL */ SELECT name, email FROM users';
     const result = extractNullabilityHints(sql);
-    expect(result.hints.get('name')).toBe('not-null');
-    expect(result.hints.get('email')).toBe('not-null');
-    expect(result.hints.has('Name')).toBe(false);
+    expect(result.hints.get('Name')).toBe('not-null');
+    expect(result.hints.get('EMAIL')).toBe('not-null');
+    expect(result.hints.has('name')).toBe(false);
   });
 
   it('handles extra whitespace and newlines in column lists', () => {
@@ -101,6 +101,20 @@ describe('extractNullabilityHints', () => {
     const sql = '/* TODO: optimize */ SELECT id FROM users';
     const result = extractNullabilityHints(sql);
     expect(result.cleanedSql).toBe(sql);
+  });
+
+  it('strips double quotes from column names (PG quoting convention)', () => {
+    const sql = '/* @not-null "learningActivityId" */ SELECT 1 AS "learningActivityId"';
+    const result = extractNullabilityHints(sql);
+    expect(result.hints.get('learningActivityId')).toBe('not-null');
+    expect(result.hints.has('"learningActivityId"')).toBe(false);
+  });
+
+  it('handles mix of quoted and unquoted column names', () => {
+    const sql = '/* @not-null "userId", name */ SELECT 1 AS "userId", 2 AS name';
+    const result = extractNullabilityHints(sql);
+    expect(result.hints.get('userId')).toBe('not-null');
+    expect(result.hints.get('name')).toBe('not-null');
   });
 
   it('rejects column names with invalid identifiers', () => {
