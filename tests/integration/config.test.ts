@@ -60,6 +60,36 @@ schema = "schema.sql"
     expect(config.database.pglite).toBe(true);
     expect(config.database.schema).toBe('schema.sql');
   });
+
+  it('accepts the string form for schema (back-compat)', () => {
+    const config = parseConfig(`
+[database]
+pglite = true
+schema = "path/to/schema.sql"
+`);
+    expect(config.database.schema).toBe('path/to/schema.sql');
+  });
+
+  it('accepts the [database.schema] command table form', () => {
+    const config = parseConfig(`
+[database]
+pglite = true
+
+[database.schema]
+command = "pnpm gm:ensure-snapshot"
+`);
+    expect(config.database.schema).toEqual({ command: 'pnpm gm:ensure-snapshot' });
+  });
+
+  it('throws for a malformed schema table (no command key)', () => {
+    expect(() => parseConfig(`
+[database]
+pglite = true
+
+[database.schema]
+foo = "bar"
+`)).toThrow(/must be a string or \{ command/);
+  });
 });
 
 describe('resolveConfig', () => {

@@ -2,11 +2,13 @@ import { parse as parseToml } from 'smol-toml';
 import * as fs from 'fs';
 import * as path from 'path';
 
+export type SchemaSource = string | { command: string };
+
 export interface TsSqlxConfig {
   database: {
     url?: string;
     pglite?: boolean;
-    schema?: string;
+    schema?: SchemaSource;
   };
   paths: {
     include: string[];
@@ -67,6 +69,20 @@ export function parseTypeOverrides(
   return map;
 }
 
+function parseSchemaSource(raw: unknown): SchemaSource | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw === 'string') return raw;
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    const command = (raw as Record<string, unknown>).command;
+    if (typeof command === 'string') {
+      return { command };
+    }
+  }
+  throw new Error(
+    `ts-sqlx: [database] schema must be a string or { command = "..." }; got: ${JSON.stringify(raw)}`,
+  );
+}
+
 export function parseConfig(tomlText: string): TsSqlxConfig {
   const parsed = parseToml(tomlText) as Record<string, unknown>;
   const db = (parsed.database ?? {}) as Record<string, unknown>;
@@ -79,7 +95,7 @@ export function parseConfig(tomlText: string): TsSqlxConfig {
     database: {
       url: db.url as string | undefined,
       pglite: db.pglite as boolean | undefined,
-      schema: db.schema as string | undefined,
+      schema: parseSchemaSource(db.schema),
     },
     paths: {
       include: (paths.include as string[]) ?? DEFAULTS.paths.include,

@@ -3,6 +3,7 @@ import { DiagnosticsEngine } from '@bluedrop-learning-networks/ts-sqlx-core/diag
 import { createDatabaseAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/database/adapterFactory.js';
 import { TsMorphAdapter } from '@bluedrop-learning-networks/ts-sqlx-core/adapters/typescript/tsMorphAdapter.js';
 import { resolveConfig, parseTypeOverrides } from '@bluedrop-learning-networks/ts-sqlx-core/config.js';
+import { resolveSchemaPath } from '@bluedrop-learning-networks/ts-sqlx-core/schema-source.js';
 import { glob } from 'glob';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -30,9 +31,9 @@ export const checkCommand = command({
     let dbAdapter = null;
     try {
       dbAdapter = await createDatabaseAdapter(config);
-      if (dbAdapter && config.database.pglite && config.database.schema) {
-        const schemaPath = path.resolve(configDir, config.database.schema);
-        if (fs.existsSync(schemaPath)) {
+      if (dbAdapter && config.database.pglite) {
+        const schemaPath = resolveSchemaPath(config.database.schema, configDir);
+        if (schemaPath && fs.existsSync(schemaPath)) {
           await dbAdapter.executeSchema(fs.readFileSync(schemaPath, 'utf8'));
         }
       }
