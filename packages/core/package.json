@@ -13,6 +13,10 @@
       "types": "./dist/config.d.ts",
       "default": "./dist/config.js"
     },
+    "./schema-source.js": {
+      "types": "./dist/schema-source.d.ts",
+      "default": "./dist/schema-source.js"
+    },
     "./adapters/database/*": {
       "types": "./dist/adapters/database/*",
       "default": "./dist/adapters/database/*"

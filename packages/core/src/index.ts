@@ -18,6 +18,7 @@ export { TypeCache } from './cache.js';
 export { extractNullabilityHints } from './hintExtractor.js';
 export type { NullabilityHint, HintExtractionResult } from './hintExtractor.js';
 export { parseConfig, resolveConfig, parseTypeOverrides } from './config.js';
-export type { TsSqlxConfig, TypeOverride, ResolvedConfig } from './config.js';
+export type { TsSqlxConfig, TypeOverride, ResolvedConfig, SchemaSource } from './config.js';
+export { resolveSchemaPath } from './schema-source.js';
 export { PerfCollector, perf } from './perf.js';
 export type { PerfSummary, PerfPhaseSummary } from './perf.js';
