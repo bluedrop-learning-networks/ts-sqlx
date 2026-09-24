@@ -63,6 +63,10 @@ function isTypeCompatible(
 
   if (normalizedInferred === normalizedDeclared) return true;
 
+  // `unknown` and `any` accept every value, NULL included; TypeScript prints `unknown | null`
+  // and `any | null` without the null
+  if (normalizedDeclared === 'unknown' || normalizedDeclared === 'any') return true;
+
   if (nullable) {
     const inferredParts = normalizeType(inferred.replace(/\| null/g, '').trim());
     const declaredParts = normalizeType(declared.replace(/\| null/g, '').trim());

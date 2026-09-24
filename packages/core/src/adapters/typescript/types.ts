@@ -1,3 +1,5 @@
+import type { ParamTypeMember } from '../../paramTypes.js';
+
 export interface PropertyInfo {
   name: string;
   type: string;
@@ -8,6 +10,8 @@ export interface ArgumentInfo {
   position: number;
   type: string;
   text: string;
+  /** Type of each element, when the argument is an array literal without spreads. */
+  elementTypes?: ParamTypeMember[][];
 }
 
 export interface CallExpressionInfo {

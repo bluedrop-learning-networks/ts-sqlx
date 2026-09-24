@@ -1,0 +1,67 @@
+// Fixtures for TS004 with variable params and TS010 with `unknown` declared types
+import { db } from "../db";
+
+declare const minAge: number;
+declare const emailPattern: string;
+declare const maybeName: string | null;
+declare const maybeAge: number | undefined;
+declare const ageAsText: string;
+declare const untyped: unknown;
+declare const anything: any;
+declare const payload: string;
+declare const published: "published";
+declare const draftOrArchived: "draft" | "archived";
+declare const anyStatus: string;
+type OrderStatus = "draft" | "published";
+declare const aliasedStatus: OrderStatus;
+enum StatusEnum { Draft = "draft", Archived = "archived" }
+declare const tsEnumStatus: StatusEnum;
+declare const brandedAge: number & { __brand: "Age" };
+declare function generic<T extends number>(value: T): T;
+declare const templated: `user-${string}`;
+declare const ages: number[];
+declare const maybeAges: (number | null)[];
+declare const readonlyAges: readonly number[];
+declare const when: Date;
+declare const whens: Date[];
+declare const tupleParams: [number, string];
+
+export const numberVariable = db.one<{ id: string }>("SELECT id FROM users WHERE age > $1", [minAge]);
+export const stringVariable = db.one<{ id: string }>("SELECT id FROM users WHERE email LIKE $1", [emailPattern]);
+export const nullableVariable = db.one<{ id: string }>("SELECT id FROM users WHERE name = $1", [maybeName]);
+export const optionalVariable = db.one<{ id: string }>("SELECT id FROM users WHERE age > $1", [maybeAge]);
+export const mixedVariableAndLiteral = db.one<{ id: string }>("SELECT id FROM users WHERE age > $1 AND email LIKE $2", [minAge, "%@example.com"]);
+export const anyVariable = db.one<{ id: string }>("SELECT id FROM users WHERE age > $1", [anything]);
+export const stringVariableForInt = db.one<{ id: string }>("SELECT id FROM users WHERE age = $1", [ageAsText]);
+export const stringForJson = db.one<{ id: number }>("SELECT id FROM type_showcase WHERE jsonb_col = $1::jsonb", [payload]);
+export const literalForEnum = db.one<{ id: number }>("SELECT id FROM orders WHERE status = $1", [published]);
+export const literalUnionForEnum = db.one<{ id: number }>("SELECT id FROM orders WHERE status = $1", [draftOrArchived]);
+export const inlineLiteralForEnum = db.one<{ id: number }>("SELECT id FROM orders WHERE status = $1", ["draft"]);
+export const stringForEnum = db.one<{ id: number }>("SELECT id FROM orders WHERE status = $1", [anyStatus]);
+export const negativeLiteral = db.one<{ id: string }>("SELECT id FROM users WHERE age > $1", [-5]);
+export const decimalLiteral = db.one<{ id: number }>("SELECT id FROM type_showcase WHERE double_num > $1", [1.5]);
+export const pipeInStringLiteral = db.one<{ id: string }>("SELECT id FROM users WHERE email LIKE $1", ["%a|b%"]);
+export const inlineNull = db.one<{ id: string }>("SELECT id FROM users WHERE name = $1", [null]);
+export const inlineUndefined = db.one<{ id: string }>("SELECT id FROM users WHERE name = $1", [undefined]);
+export const aliasForEnum = db.one<{ id: number }>("SELECT id FROM orders WHERE status = $1", [aliasedStatus]);
+export const tsEnumForEnum = db.one<{ id: number }>("SELECT id FROM orders WHERE status = $1", [tsEnumStatus]);
+export const brandedNumber = db.one<{ id: string }>("SELECT id FROM users WHERE age > $1", [brandedAge]);
+export const genericNumber = db.one<{ id: string }>("SELECT id FROM users WHERE age > $1", [generic(5)]);
+export const templateLiteral = db.one<{ id: string }>("SELECT id FROM users WHERE email = $1", [templated]);
+export const numberArray = db.one<{ id: number }>("SELECT id FROM type_showcase WHERE int_array = $1", [ages]);
+export const nullableNumberArray = db.one<{ id: number }>("SELECT id FROM type_showcase WHERE int_array = $1", [maybeAges]);
+export const readonlyNumberArray = db.one<{ id: number }>("SELECT id FROM type_showcase WHERE int_array = $1", [readonlyAges]);
+export const dateVariable = db.one<{ id: string }>("SELECT id FROM users WHERE created_at > $1", [when]);
+export const dateArrayForTimestamptzArray = db.one<{ x: boolean | null }>("SELECT now() = ANY($1::timestamptz[]) AS x", [whens]);
+export const tupleVariable = db.one<{ id: string }>("SELECT id FROM users WHERE age > $1 AND email = $2", tupleParams);
+export const asConstTuple = db.one<{ id: string }>("SELECT id FROM users WHERE age > $1", [18] as const);
+export const spreadParams = db.one<{ id: string }>("SELECT id FROM users WHERE age > $1", [...ages]);
+export const numberForTimestamptzArray = db.one<{ x: boolean | null }>("SELECT now() = ANY($1::timestamptz[]) AS x", [42]);
+export const stringArrayForIntArray = db.one<{ id: number }>("SELECT id FROM type_showcase WHERE int_array = $1", [["a"]]);
+export const unknownVariable = db.one<{ id: string }>("SELECT id FROM users WHERE age = $1", [untyped]);
+
+export const nullableJsonAsUnknown = db.one<{ json_col: unknown }>("SELECT json_col FROM type_showcase WHERE id = $1", [1]);
+export const nullableJsonAsUnknownOrNull = db.one<{ json_col: unknown | null }>("SELECT json_col FROM type_showcase WHERE id = $1", [1]);
+export const nullableJsonAsAny = db.one<{ json_col: any }>("SELECT json_col FROM type_showcase WHERE id = $1", [1]);
+export const nonNullJsonAsUnknown = db.one<{ jsonb_col: unknown }>("SELECT jsonb_col FROM type_showcase WHERE id = $1", [1]);
+export const nullableJsonAsObject = db.one<{ json_col: Record<string, unknown> | null }>("SELECT json_col FROM type_showcase WHERE id = $1", [1]);

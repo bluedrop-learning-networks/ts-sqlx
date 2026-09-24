@@ -1,3 +1,5 @@
+import type { ParamTypeMember } from './paramTypes.js';
+
 import type { PropertyInfo } from './adapters/typescript/types.js';
 
 // Text range in source
@@ -37,6 +39,8 @@ export interface QueryCallInfo {
   declaredResultType: string | undefined;
   paramsType: string | undefined;
   paramsText: string | undefined;
+  /** Type of each element when the params argument is an array literal without spreads. */
+  paramsElementTypes?: ParamTypeMember[][];
   position: TextRange;
   /** Byte offset right after the method name (where `<` would be inserted). */
   insertTypePosition: number;
@@ -82,6 +86,9 @@ export interface InferredParam {
   tsType: string;
   nullable: boolean;
   importFrom?: string;
+  isArray?: boolean;
+  /** Labels of the enum type (of the element, for an enum array), unescaped. */
+  enumLabels?: string[];
 }
 
 export interface InferredColumn {

@@ -48,6 +48,10 @@
     "./perf.js": {
       "types": "./dist/perf.d.ts",
       "default": "./dist/perf.js"
+    },
+    "./paramTypes.js": {
+      "types": "./dist/paramTypes.d.ts",
+      "default": "./dist/paramTypes.js"
     }
   },
   "publishConfig": {

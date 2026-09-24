@@ -16,7 +16,10 @@ export class DbInferrer {
     this.enumMap = await this.adapter.discoverEnums();
   }
 
-  private resolveType(pgName: string, isArray: boolean): { tsType: string; importFrom?: string } {
+  private resolveType(
+    pgName: string,
+    isArray: boolean,
+  ): { tsType: string; importFrom?: string; enumLabels?: string[] } {
     // 1. Manual overrides win
     const override = this.typeOverrides?.get(pgName);
     if (override) {
@@ -28,7 +31,7 @@ export class DbInferrer {
     const enumInfo = this.enumMap.get(pgName);
     if (enumInfo) {
       const union = enumInfo.labels.map(l => `'${l.replace(/'/g, "\\'")}'`).join(' | ');
-      return { tsType: isArray ? `(${union})[]` : union };
+      return { tsType: isArray ? `(${union})[]` : union, enumLabels: enumInfo.labels };
     }
 
     // 3. Built-in PG_TO_TS fallback
@@ -49,6 +52,8 @@ export class DbInferrer {
         pgType: p.name,
         tsType: resolved.tsType,
         nullable: false,
+        isArray: p.isArray,
+        ...(resolved.enumLabels ? { enumLabels: resolved.enumLabels } : {}),
         ...(resolved.importFrom ? { importFrom: resolved.importFrom } : {}),
       };
     });
