@@ -106,11 +106,19 @@ export class TsMorphAdapter implements TypeScriptAdapter {
         }
       }
 
-      const args: ArgumentInfo[] = node.getArguments().map((arg) => ({
-        position: arg.getStart(),
-        type: arg.getType().getText(),
-        text: arg.getText(),
-      }));
+      const args: ArgumentInfo[] = node.getArguments().map((arg) => {
+        const elements = Node.isArrayLiteralExpression(arg) ? arg.getElements() : undefined;
+        const elementTypes =
+          elements && !elements.some((el) => Node.isSpreadElement(el))
+            ? elements.map((el) => el.getType().getText())
+            : undefined;
+        return {
+          position: arg.getStart(),
+          type: arg.getType().getText(),
+          text: arg.getText(),
+          elementTypes,
+        };
+      });
 
       const insertTypePosition = expr.getNameNode().getEnd();
 

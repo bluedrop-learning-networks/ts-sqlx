@@ -60,6 +60,7 @@ export class QueryDetector {
       declaredResultType: call.typeArguments.length > 0 ? call.typeArguments[0] : undefined,
       paramsType: call.arguments.length > 1 ? call.arguments[1].type : undefined,
       paramsText: call.arguments.length > 1 ? call.arguments[1].text : undefined,
+      paramsElementTypes: call.arguments.length > 1 ? call.arguments[1].elementTypes : undefined,
       position: call.position,
       insertTypePosition: call.insertTypePosition,
       typeArgumentRange: call.typeArgumentRange,

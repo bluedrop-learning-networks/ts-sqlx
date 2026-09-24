@@ -37,6 +37,8 @@ export interface QueryCallInfo {
   declaredResultType: string | undefined;
   paramsType: string | undefined;
   paramsText: string | undefined;
+  /** TS type of each element when the params argument is an array literal without spreads. */
+  paramsElementTypes?: string[];
   position: TextRange;
   /** Byte offset right after the method name (where `<` would be inserted). */
   insertTypePosition: number;

@@ -3,6 +3,22 @@ import { compareTypes, generateTypeAnnotation } from '@bluedrop-learning-network
 import type { InferredColumn } from '@bluedrop-learning-networks/ts-sqlx-core/types.js';
 
 describe('compareTypes', () => {
+  it('accepts unknown for a nullable column', () => {
+    const inferred: InferredColumn[] = [
+      { name: 'data', pgType: 'jsonb', tsType: 'unknown', nullable: true },
+    ];
+    const declared = [{ name: 'data', type: 'unknown', optional: false }];
+    expect(compareTypes(inferred, declared).match).toBe(true);
+  });
+
+  it('accepts unknown for a column of any type', () => {
+    const inferred: InferredColumn[] = [
+      { name: 'id', pgType: 'int4', tsType: 'number', nullable: false },
+    ];
+    const declared = [{ name: 'id', type: 'unknown', optional: false }];
+    expect(compareTypes(inferred, declared).match).toBe(true);
+  });
+
   it('accepts matching types', () => {
     const inferred: InferredColumn[] = [
       { name: 'id', pgType: 'uuid', tsType: 'string', nullable: false },

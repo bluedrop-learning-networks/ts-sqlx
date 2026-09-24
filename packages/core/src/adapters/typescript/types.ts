@@ -8,6 +8,8 @@ export interface ArgumentInfo {
   position: number;
   type: string;
   text: string;
+  /** TS type of each element, when the argument is an array literal without spreads. */
+  elementTypes?: string[];
 }
 
 export interface CallExpressionInfo {
