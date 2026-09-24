@@ -1,7 +1,9 @@
 import {
   Project,
   Node,
+  type Type,
 } from 'ts-morph';
+import type { ParamTypeMember } from '../../paramTypes.js';
 import type {
   TypeScriptAdapter,
   CallExpressionInfo,
@@ -108,10 +110,13 @@ export class TsMorphAdapter implements TypeScriptAdapter {
 
       const args: ArgumentInfo[] = node.getArguments().map((arg) => {
         const elements = Node.isArrayLiteralExpression(arg) ? arg.getElements() : undefined;
+        const argType = arg.getType();
         const elementTypes =
           elements && !elements.some((el) => Node.isSpreadElement(el))
-            ? elements.map((el) => el.getType().getText())
-            : undefined;
+            ? elements.map((el) => describeParamType(el.getType()))
+            : argType.isTuple()
+              ? argType.getTupleElements().map(describeParamType)
+              : undefined;
         return {
           position: arg.getStart(),
           type: arg.getType().getText(),
@@ -219,4 +224,57 @@ export class TsMorphAdapter implements TypeScriptAdapter {
 
     return undefined;
   }
+}
+
+function describeParamType(type: Type): ParamTypeMember[] {
+  const members: ParamTypeMember[] = [];
+  const seen = new Set<string>();
+  const add = (member: ParamTypeMember) => {
+    const key = JSON.stringify(member);
+    if (!seen.has(key)) {
+      seen.add(key);
+      members.push(member);
+    }
+  };
+
+  const visit = (t: Type) => {
+    if (t.isUnion()) {
+      t.getUnionTypes().forEach(visit);
+      return;
+    }
+    if (t.isTypeParameter()) {
+      const constraint = t.getConstraint();
+      if (constraint) {
+        visit(constraint);
+        return;
+      }
+    }
+    if (t.isIntersection()) {
+      // A branded primitive such as `number & { __brand: 'UserId' }` is sent as the primitive
+      const primitive = t.getIntersectionTypes().find(
+        (part) => part.isString() || part.isNumber() || part.isBoolean(),
+      );
+      if (primitive) {
+        visit(primitive);
+        return;
+      }
+    }
+    if (t.isStringLiteral()) {
+      add({ kind: 'string-literal', value: String(t.getLiteralValue()) });
+    } else if (t.isNumberLiteral() || t.isNumber()) {
+      add({ kind: 'type', text: 'number' });
+    } else if (t.isBooleanLiteral() || t.isBoolean()) {
+      add({ kind: 'type', text: 'boolean' });
+    } else if (t.isTemplateLiteral() || t.isString()) {
+      add({ kind: 'type', text: 'string' });
+    } else if (t.isArray() || t.isReadonlyArray()) {
+      const element = t.getArrayElementType() ?? t.getTypeArguments()[0];
+      add(element ? { kind: 'array', element: describeParamType(element) } : { kind: 'type', text: t.getText() });
+    } else {
+      add({ kind: 'type', text: t.getText() });
+    }
+  };
+
+  visit(type);
+  return members;
 }

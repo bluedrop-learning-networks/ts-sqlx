@@ -51,6 +51,24 @@ describe('variable params and unknown declared types', () => {
     'literalForEnum',
     'literalUnionForEnum',
     'inlineLiteralForEnum',
+    'negativeLiteral',
+    'decimalLiteral',
+    'pipeInStringLiteral',
+    'inlineNull',
+    'inlineUndefined',
+    'aliasForEnum',
+    'tsEnumForEnum',
+    'brandedNumber',
+    'genericNumber',
+    'templateLiteral',
+    'numberArray',
+    'nullableNumberArray',
+    'readonlyNumberArray',
+    'dateVariable',
+    'dateArrayForTimestamptzArray',
+    'tupleVariable',
+    'asConstTuple',
+    'spreadParams',
   ])(
     'accepts a variable of a matching type: %s',
     (name) => {
@@ -70,14 +88,26 @@ describe('variable params and unknown declared types', () => {
     ]);
   });
 
+  it('rejects a number for a timestamptz array', () => {
+    expect(diagnosticsFor('numberForTimestamptzArray')).toEqual([
+      'TS004: Type mismatch for parameter $1: expected Date[], got number',
+    ]);
+  });
+
+  it('rejects a string array for an int array', () => {
+    expect(diagnosticsFor('stringArrayForIntArray')).toEqual([
+      'TS004: Type mismatch for int_array: expected number[], got string[]',
+    ]);
+  });
+
   it('rejects a variable typed unknown', () => {
     expect(diagnosticsFor('unknownVariable')).toEqual([
       'TS004: Type mismatch for age: expected number, got unknown',
     ]);
   });
 
-  it.each(['nullableJsonAsUnknown', 'nullableJsonAsUnknownOrNull', 'nonNullJsonAsUnknown'])(
-    'accepts unknown for a json column: %s',
+  it.each(['nullableJsonAsUnknown', 'nullableJsonAsUnknownOrNull', 'nullableJsonAsAny', 'nonNullJsonAsUnknown'])(
+    'accepts unknown or any for a json column: %s',
     (name) => {
       expect(diagnosticsFor(name)).toEqual([]);
     },

@@ -9,6 +9,7 @@ import { DbInferrer } from './dbInferrer.js';
 import { extractNullabilityHints } from './hintExtractor.js';
 import { compareTypes, generateTypeAnnotation } from './typeComparator.js';
 import { perf } from './perf.js';
+import { formatParamType, isParamCompatible, paramTypeFromText, type ParamTypeMember } from './paramTypes.js';
 
 export class DiagnosticsEngine {
   private queryDetector: QueryDetector;
@@ -173,24 +174,20 @@ export class DiagnosticsEngine {
 
       // TS004: Type mismatch between TS param types and inferred SQL param types
       if (indexedParams.length > 0 && query.paramsText && inferred.params.length > 0) {
-        const elementTypes = inferElementTypes(
-          query.paramsText,
-          query.paramsType,
-          query.paramsElementTypes,
-        );
+        const elementTypes = inferElementTypes(query.paramsText, query.paramsElementTypes);
         if (elementTypes) {
           for (let i = 0; i < Math.min(elementTypes.length, inferred.params.length); i++) {
             const inferredParam = inferred.params[i];
             const tsType = elementTypes[i];
-            if (tsType && !isParamTypeCompatible(tsType, inferredParam.tsType)) {
+            if (tsType && !isParamCompatible(tsType, inferredParam)) {
               // Find the SQL column name this param is used with
               const paramColName = findParamColumnName(query.sqlText, i + 1);
               diagnostics.push({
                 code: 'TS004',
                 severity: 'error',
                 message: paramColName
-                  ? `Type mismatch for ${paramColName}: expected ${inferredParam.tsType}, got ${tsType}`
-                  : `Type mismatch for parameter $${i + 1}: expected ${inferredParam.tsType}, got ${tsType}`,
+                  ? `Type mismatch for ${paramColName}: expected ${inferredParam.tsType}, got ${formatParamType(tsType)}`
+                  : `Type mismatch for parameter $${i + 1}: expected ${inferredParam.tsType}, got ${formatParamType(tsType)}`,
                 range: query.position,
               });
             }
@@ -359,46 +356,26 @@ function splitTopLevel(text: string): string[] {
 }
 
 /**
- * Infer element types from params text and/or params type.
- * Tries to determine the TS type of each element in the params array.
+ * The type of each element of the params array: from the type checker when the params argument
+ * is an array literal or a tuple, otherwise from the literal text of each element.
  */
 function inferElementTypes(
   paramsText: string | undefined,
-  paramsType: string | undefined,
-  paramsElementTypes: string[] | undefined,
-): string[] | undefined {
-  // First try tuple types from TS: [string, number]
-  if (paramsType) {
-    const trimmed = paramsType.trim();
-    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-      const inner = trimmed.slice(1, -1).trim();
-      if (inner === '') return [];
-      return splitTopLevel(inner).map(t => t.trim());
-    }
-  }
-
-  // An array literal widens to T[], so take each element's own type from the checker
+  paramsElementTypes: ParamTypeMember[][] | undefined,
+): ParamTypeMember[][] | undefined {
   if (paramsElementTypes) {
     return paramsElementTypes;
   }
 
-  // Infer types from literal values in the params text
   if (paramsText) {
     const trimmed = paramsText.trim();
     if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
       const inner = trimmed.slice(1, -1).trim();
       if (inner === '') return [];
-      const elements = splitTopLevel(inner);
-      return elements.map(el => inferLiteralType(el.trim()));
-    }
-  }
-
-  // Fall back to array element type: string[] -> all elements are string
-  if (paramsType) {
-    const match = paramsType.match(/^(\w+)\[\]$/);
-    if (match) {
-      // Can't determine individual element types from a uniform array type
-      return undefined;
+      const elements = splitTopLevel(inner).map((el) => el.trim());
+      // A spread hides how many values, and of what type, land at each position
+      if (elements.some((el) => el.startsWith('...'))) return undefined;
+      return elements.map(inferLiteralType);
     }
   }
 
@@ -408,77 +385,26 @@ function inferElementTypes(
 /**
  * Infer the TS type of a literal value from its text representation.
  */
-function inferLiteralType(text: string): string {
-  if (text.startsWith('"') || text.startsWith("'") || text.startsWith('`')) {
-    return 'string';
+function inferLiteralType(text: string): ParamTypeMember[] {
+  if (text.startsWith('"') || text.startsWith("'")) {
+    return paramTypeFromText(text);
   }
-  if (text === 'true' || text === 'false') {
-    return 'boolean';
+  if (text.startsWith('`')) {
+    return [{ kind: 'type', text: 'string' }];
   }
-  if (text === 'null') {
-    return 'null';
-  }
-  if (text === 'undefined') {
-    return 'undefined';
+  if (text === 'true' || text === 'false' || text === 'null' || text === 'undefined') {
+    return paramTypeFromText(text);
   }
   if (/^-?\d+(\.\d+)?$/.test(text)) {
-    return 'number';
+    return [{ kind: 'type', text: 'number' }];
   }
   if (text.startsWith('[')) {
-    return 'array';
+    return [{ kind: 'type', text: 'array' }];
   }
   if (text.startsWith('{')) {
-    return 'object';
+    return [{ kind: 'type', text: 'object' }];
   }
-  return 'unknown';
-}
-
-/**
- * Check if a TS type is compatible with an expected SQL param type.
- */
-function isParamTypeCompatible(tsType: string, expectedType: string): boolean {
-  // Any parameter may be NULL (pg-promise and node-postgres send undefined as NULL too),
-  // so only the remaining members have to match
-  const members = tsType
-    .split('|')
-    .map((t) => t.trim())
-    .filter((t) => t !== 'null' && t !== 'undefined');
-  if (members.length === 0) return true;
-  if (members.length > 1) {
-    return members.every((member) => isParamTypeCompatible(member, expectedType));
-  }
-
-  const normalizedTs = members[0].replace(/\s+/g, '').toLowerCase();
-  const normalizedExpected = expectedType.replace(/\s+/g, '').toLowerCase();
-
-  if (normalizedTs === normalizedExpected) return true;
-  if (normalizedTs === 'any') return true;
-  // json/jsonb and other unmapped types accept any value
-  if (normalizedExpected === 'unknown') return true;
-
-  // string is compatible with string
-  // number is compatible with number
-  // "not a number" literal type -> string, not compatible with number
-  if (normalizedTs.startsWith('"') || normalizedTs.startsWith("'")) {
-    // String literal type -- compatible with string, or with an enum that lists it
-    if (normalizedExpected === 'string') return true;
-    const literal = members[0].slice(1, -1);
-    return expectedType
-      .split('|')
-      .map((t) => t.trim())
-      .some((t) => /^'.*'$/.test(t) && t.slice(1, -1) === literal);
-  }
-
-  if (/^\d+$/.test(normalizedTs)) {
-    // Number literal type -- compatible with number
-    return normalizedExpected === 'number';
-  }
-
-  if (normalizedTs === 'true' || normalizedTs === 'false') {
-    return normalizedExpected === 'boolean';
-  }
-
-  return false;
+  return [{ kind: 'type', text: 'unknown' }];
 }
 
 /**

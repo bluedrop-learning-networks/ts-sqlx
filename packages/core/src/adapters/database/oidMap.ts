@@ -48,6 +48,20 @@ const OID_MAP: Record<number, string> = {
   199: '_json',
   3807: '_jsonb',
   1015: '_varchar',
+  1014: '_char',
+  1028: '_oid',
+  1040: '_macaddr',
+  1041: '_inet',
+  651: '_cidr',
+  791: '_money',
+  1183: '_time',
+  1185: '_timestamptz',
+  1187: '_interval',
+  1270: '_timetz',
+  1561: '_bit',
+  1563: '_varbit',
+  143: '_xml',
+  3643: '_tsvector',
 };
 
 export function oidToTypeName(oid: number): string {

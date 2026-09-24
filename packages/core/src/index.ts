@@ -12,6 +12,8 @@ export type { ParseResult } from './sqlAnalyzer.js';
 export { QueryDetector } from './queryDetector.js';
 export { DbInferrer } from './dbInferrer.js';
 export { compareTypes, generateTypeAnnotation } from './typeComparator.js';
+export { isParamCompatible, formatParamType } from './paramTypes.js';
+export type { ParamTypeMember } from './paramTypes.js';
 export type { DeclaredProperty, CompareResult, GeneratedAnnotation, TypeImport } from './typeComparator.js';
 export { DiagnosticsEngine } from './diagnostics.js';
 export { TypeCache } from './cache.js';
